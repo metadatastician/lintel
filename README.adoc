@@ -161,6 +161,68 @@ The short version:
 * link:docs/AI_INSTALLATION_GUIDE.adoc[AI installation guide] — for agents instantiating this template.
 * link:.machine_readable/ai/PLACEHOLDERS.adoc[PLACEHOLDERS] — the full placeholder reference.
 
+== Privacy lattice: proof status
+
+Lintel labels each field with the set of oblivious-DNS roles (client, proxy,
+target) allowed to observe it. Combining fields intersects their readers, so the
+client's address (client and proxy) combined with the query name (client and
+target) is the client's alone. The guarantee being built is secret-types'
+termination-insensitive noninterference (TINI) at this lattice, with one
+observer per role: two finishing runs that agree on what a role may observe end
+up agreeing on it. Until that instance typechecks, the claim that self-defeating
+privacy compositions cannot be built holds for labels, not yet for programs.
+
+[cols="1,4,1,4",options="header"]
+|===
+| ID | Claim | Status | Artefact
+
+| L-1
+| A lattice, not just a poset. ⊑ is a decidable partial order, ⊔ and ⊓ are least upper and greatest lower bounds, `anyone` is least, and `no-one` is greatest and never flows down.
+| PROVEN
+| `src/Lintel/Lattice.agda`: `⊑-refl`, `⊑-trans`, `⊑-antisym`, `⊔-upper₁`/`₂`, `⊔-least`, `⊓-lower₁`/`₂`, `⊓-greatest`, `anyone-least`, `no-one-greatest`, `no-one-⋢-anyone`, `_⊑?_`
+
+| L-2
+| ⊑ is reverse inclusion of reader sets. A role sees a label exactly when the label may flow to that role's observer level.
+| PROVEN
+| `⊑-readers`, `readers-⊑`, `observes-flow`, `flow-observes`
+
+| L-3
+| The laws secret-types' TINI uses for its two-point lattice hold here.
+| PROVEN
+| `⊔-anyone₁`/`₂` (⊔-L₁/₂), `no-one-⊔` (H ⊔ y = H), `anyone-⊔` (L ⊔ y = y)
+
+| L-4
+| Address and query name each reach their own role. Composed, only the client may observe them.
+| PROVEN
+| `address-to-proxy`, `qname-to-target`, `link`, `link-confined`
+
+| L-5
+| The typechecker refuses the self-defeating compositions and accepts the client's.
+| TESTED
+| `tests/reject/LinkToProxy.agda`, `tests/reject/LinkToTarget.agda`, `tests/accept/LinkToClient.agda`, run by `scripts/check.sh` with a negative control
+
+| L-6
+| `tini` holds at this lattice for each role's observer: secret-types' N-1 statement, with low-equivalence read at that observer.
+| OPEN
+| Waits on the parametric `Lattice` record, link:https://github.com/hyperpolymath/secret-types/issues/9[secret-types#9]. Lintel then instantiates it at a pinned commit.
+
+| L-7
+| Self-defeating privacy compositions cannot be built (programs, not just labels).
+| DESIGNED
+| Follows from L-5 and L-6 once L-6 is PROVEN.
+
+| A-1
+| Each role is a separate observer. A party holding two roles is outside L-4 to L-7.
+| ASSUMED
+| Non-collusion, as in proven-servers `protocols/proven-odns` (`ODNS.Types.Role`)
+|===
+
+The `Lattice` record is defined once, in secret-types. Lintel proves the laws and
+will supply the instance. `just proof-check-lintel` checks everything above (it
+runs `scripts/fetch-siblings.sh` then `scripts/check.sh`), and so does the
+`Agda proofs` workflow: Agda 2.6.4.3, `--safe --without-K --no-libraries
+--double-check`, secret-types pinned at `833715c`.
+
 == Licence
 
 Code, configuration and scripts are link:LICENSE[Mozilla Public License 2.0]
