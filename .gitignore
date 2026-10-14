@@ -143,4 +143,6 @@ verification/proofs/coq/*.glob
 verification/proofs/coq/.*.aux
 # Agda compiled proof artifacts
 verification/proofs/agda/*.agdai
+# scripts/check.sh writes interfaces beside src/Lintel and tests/{accept,reject}
+*.agdai
 
