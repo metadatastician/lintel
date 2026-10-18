@@ -1,0 +1,43 @@
+# This workflow is managed by gh actions-lock.
+# SPDX-License-Identifier: MPL-2.0
+# SPDX-FileCopyrightText: 2026 Jonathan D.A. Jewell
+# The Agda proof gate (LNT-01).  Pattern: choreographic-types
+# .github/workflows/proofs.yml: a digest-pinned Debian 13 container, the
+# prover apt-pinned to one package version, the sibling fetched at its pinned
+# commit by scripts/fetch-siblings.sh.  The only action is GitHub-owned and
+# resolved through actions.lock.
+name: Agda proofs
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+env:
+  LANG: C.UTF-8
+  LC_ALL: C.UTF-8
+jobs:
+  proofs:
+    name: Lattice laws, pinned sibling, controls and expected rejections
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    container: debian:13-slim@sha256:a29215f6a35e51e22adffa17f89e9d2ef06214e64a2bad10d765c46aea49f11f
+    steps:
+      - name: Install the pinned prover
+        run: |
+          apt-get update
+          apt-get install --no-install-recommends -y ca-certificates git agda-bin=2.6.4.3-1+b2
+      - name: Checkout
+        uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+      - name: Verify the checked Agda version
+        run: test "$(agda --version)" = 'Agda version 2.6.4.3'
+      - name: Fetch siblings at their pinned commits
+        run: bash scripts/fetch-siblings.sh
+      - name: Proof gate
+        run: bash scripts/check.sh

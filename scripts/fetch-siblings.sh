@@ -1,0 +1,61 @@
+#!/usr/bin/env bash
+# SPDX-License-Identifier: MPL-2.0
+# SPDX-FileCopyrightText: 2026 Jonathan D.A. Jewell
+#
+# Fetch every sibling the proofs import, each at ONE pinned commit, into
+# _build/dependencies/<repo>.  Pattern: choreographic-types and
+# residual-evidence-types scripts/fetch-siblings.sh.
+#
+# Each pin is a full 40-character commit SHA, fetched directly (no branch,
+# no history) and verified after checkout, so an upstream force-push can
+# never change what this gate checks.  Override a pin only through its
+# environment variable, and only deliberately; re-pin one commit at a time
+# and record the new pin in the importing module headers.
+#
+#   secret-types  SecretTypes.Prelude (imported by Lintel.Lattice) and the
+#                 TINI development re-checked by scripts/check.sh; the
+#                 parametric Lattice record is not upstream yet
+set -euo pipefail
+cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.."
+
+SECRET_TYPES_COMMIT="${SECRET_TYPES_COMMIT:-833715c98eb9728979d31be9c71f81fdb986bd3b}"
+DEPENDENCIES_DIR="${DEPENDENCIES_DIR:-_build/dependencies}"
+
+# fetch_pinned <repo> <commit>
+# Fetches exactly <commit> of hyperpolymath/<repo> into $DEPENDENCIES_DIR/<repo>
+# (reusing a checkout that already holds the commit) and detaches HEAD there.
+# Requires a full 40-character lowercase hexadecimal SHA. Exits the script
+# with status 1 for an invalid pin, a HEAD mismatch, or tracked changes or
+# untracked files reported by Git, excluding .agdai files. Git-ignored files
+# are not checked; the proof gate ignores .agdai files (--ignore-interfaces).
+# Other Git command failures terminate the script with the command's status.
+fetch_pinned() {
+  local repo="$1" commit="$2" dir="$DEPENDENCIES_DIR/$1" head dirty
+  if ! [[ "$commit" =~ ^[0-9a-f]{40}$ ]]; then
+    echo "ERROR: $repo pin must be a full 40-character commit SHA, got '$commit'" >&2
+    exit 1
+  fi
+  if [ ! -d "$dir/.git" ]; then
+    git init --quiet "$dir"
+    git -C "$dir" remote add origin "https://github.com/hyperpolymath/$repo.git"
+  fi
+  if ! git -C "$dir" cat-file -e "$commit^{commit}" 2>/dev/null; then
+    git -C "$dir" fetch --quiet --depth 1 origin "$commit"
+  fi
+  git -C "$dir" checkout --quiet --detach "$commit"
+  head="$(git -C "$dir" rev-parse HEAD)"
+  if [ "$head" != "$commit" ]; then
+    echo "ERROR: $repo pin mismatch: want $commit got $head" >&2
+    exit 1
+  fi
+  dirty="$(git -C "$dir" status --porcelain --untracked-files=all -- . ':(exclude,glob)**/*.agdai')"
+  if [ -n "$dirty" ]; then
+    echo "ERROR: $repo checkout at $dir is not exactly $commit; remove the directory and re-run:" >&2
+    echo "$dirty" >&2
+    exit 1
+  fi
+  echo "$repo at $head"
+}
+
+mkdir -p "$DEPENDENCIES_DIR"
+fetch_pinned secret-types "$SECRET_TYPES_COMMIT"

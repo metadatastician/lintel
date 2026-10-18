@@ -8,8 +8,8 @@
 # scan for dangerous/unsafe constructs and report status. Run via
 # `just proof-check-all` for the full sweep.
 
-# Check all formal proofs (Idris2 + Lean4 + Agda + Coq)
-proof-check-all: proof-check-idris2 proof-check-lean4 proof-check-agda proof-check-coq proof-scan-dangerous
+# Check all formal proofs (Idris2 + Lean4 + Agda + Coq, and the Lintel Agda gate)
+proof-check-all: proof-check-idris2 proof-check-lean4 proof-check-agda proof-check-coq proof-check-lintel proof-scan-dangerous
     @echo "=== All proof checks complete ==="
 
 # Each proof-check-<prover> delegates to scripts/check-proofs.sh, the single
@@ -33,6 +33,13 @@ proof-check-agda:
 # Check Coq proofs (per MANIFEST; fatal if coqc absent)
 proof-check-coq:
     @bash scripts/check-proofs.sh coq
+
+# LNT-01: siblings at their pins, then the lattice laws, positive controls and
+# expected rejections. The same two scripts run in .github/workflows/proofs.yml.
+# Check Lintel's Agda proofs (siblings pinned; fatal if agda absent)
+proof-check-lintel:
+    @bash scripts/fetch-siblings.sh
+    @bash scripts/check.sh
 
 # Scan for dangerous constructs USED in proof code (believe_me, sorry, Admitted,
 # postulate, ...). Comments are ignored — a comment naming a banned construct
