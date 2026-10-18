@@ -43,11 +43,38 @@ fi
 flags=(--safe --without-K --no-libraries --ignore-interfaces --double-check -W error -i src -i "$st")
 
 # 1. Coverage: a module that Lintel.All does not import is never checked.
+# Strip nested Agda comments once, before looking for active imports.
+imports="$(awk '
+  {
+    code = ""
+    for (i = 1; i <= length($0); i++) {
+      c = substr($0, i, 1); pair = substr($0, i, 2)
+      if (depth) {
+        if (pair == "{-") { depth++; i++ }
+        else if (pair == "-}") { depth--; i++ }
+      } else if (quoted) {
+        if (c == "\\") i++
+        else if (c == "\"") quoted = 0
+      } else if (pair == "--") {
+        break
+      } else if (pair == "{-") {
+        depth++; i++; code = code " "
+      } else if (c == "\"") {
+        quoted = 1; code = code " "
+      } else if (match(substr($0, i), /^\047([^\047\\]|\\.)\047/)) {
+        i += RLENGTH - 1; code = code " "
+      } else {
+        code = code c
+      }
+    }
+    print code
+  }
+' src/Lintel/All.agda)"
 missing=0
 while IFS= read -r file; do
   module="${file#src/}"; module="${module%.agda}"; module="${module//\//.}"
   [ "$module" = Lintel.All ] && continue
-  if ! grep -qE "^import ${module//./\\.}\$" src/Lintel/All.agda; then
+  if ! grep -qE "^[[:space:]]*import[[:space:]]+${module//./\\.}[[:space:]]*\$" <<< "$imports"; then
     echo "ERROR: $module is not imported by src/Lintel/All.agda" >&2
     missing=1
   fi
