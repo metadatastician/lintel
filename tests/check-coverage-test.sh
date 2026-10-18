@@ -23,7 +23,11 @@ AGDA
 chmod +x "$fixture/agda"
 
 check() {
-  local expected="$1" name="$2" missing_module="${3:-Lintel.Lattice}" status=0
+  local expected="$1" name="$2" status=0 expected_errors actual_errors
+  local missing_modules=("${@:3}")
+  if [ "${#missing_modules[@]}" -eq 0 ]; then
+    missing_modules=(Lintel.Lattice)
+  fi
   cat > "$fixture/src/Lintel/All.agda"
   rm -f "$fixture/proof-started"
   AGDA="$fixture/agda" AGDA_VERSION=2.6.4.3 SECRET_TYPES_SRC="$fixture/sibling" \
@@ -34,11 +38,15 @@ check() {
       cat "$fixture/output" >&2
       exit 1
     fi
-  elif [ "$status" -ne 1 ] || [ -f "$fixture/proof-started" ] ||
-    ! grep -Fxq "ERROR: $missing_module is not imported by src/Lintel/All.agda" "$fixture/output"; then
-    echo "FAIL: $name did not reject the uncovered module" >&2
-    cat "$fixture/output" >&2
-    exit 1
+  else
+    expected_errors="$(printf 'ERROR: %s is not imported by src/Lintel/All.agda\n' "${missing_modules[@]}" | sort)"
+    actual_errors="$(grep '^ERROR:' "$fixture/output" | sort || true)"
+    if [ "$status" -ne 1 ] || [ -f "$fixture/proof-started" ] ||
+      [ "$actual_errors" != "$expected_errors" ]; then
+      echo "FAIL: $name did not report exactly the uncovered modules" >&2
+      cat "$fixture/output" >&2
+      exit 1
+    fi
   fi
   echo "PASS: $name"
 }
@@ -243,6 +251,98 @@ import Lintel.Lattice
 -}
 AGDA
 
+# Literal state must survive line boundaries, then end at the closing quote.
+check missing 'an import line inside a multiline string is not active' <<'AGDA'
+module Lintel.All where
+text = "first line
+import Lintel.Lattice
+last line"
+AGDA
+
+check covered 'an active import after a multiline string is detected' <<'AGDA'
+module Lintel.All where
+text = "first line
+{- -- import Lintel.Decoy
+last line"
+import Lintel.Lattice
+AGDA
+
+check missing 'escaped quote keeps a string open across an import line' <<'AGDA'
+module Lintel.All where
+text = "escaped quote: \"
+import Lintel.Lattice
+last line"
+AGDA
+
+check missing 'closing a multiline string restores block comment handling' <<'AGDA'
+module Lintel.All where
+text = "first line
+last line" {-
+import Lintel.Lattice
+-}
+AGDA
+
+check missing 'closing a multiline string restores line comment handling' <<'AGDA'
+module Lintel.All where
+text = "first line
+last line" -- import Lintel.Lattice
+AGDA
+
+check covered 'separate strings do not leak comment state into an import' <<'AGDA'
+module Lintel.All where
+opening = "{-"
+closing = "-}"
+line = "--"
+import Lintel.Lattice
+AGDA
+
+check missing 'removing a string must not join pieces of the import keyword' <<'AGDA'
+module Lintel.All where
+im"ignored"port Lintel.Lattice
+AGDA
+
+check missing 'removing a character must not join pieces of a module name' <<'AGDA'
+module Lintel.All where
+import Lintel.Lat'x'tice
+AGDA
+
+check missing 'a second block comment still hides an import after the first closes' <<'AGDA'
+module Lintel.All where
+{- first -} {- second
+import Lintel.Lattice
+-}
+AGDA
+
+check covered 'a trailing multiline nested comment preserves an active import' <<'AGDA'
+module Lintel.All where
+import Lintel.Lattice {- outer
+{- inner -}
+import Lintel.Decoy
+-}
+AGDA
+
+check missing 'an unclosed block comment cannot supply coverage' <<'AGDA'
+module Lintel.All where
+{- unclosed
+import Lintel.Lattice
+AGDA
+
+check missing 'an unclosed string cannot supply coverage' <<'AGDA'
+module Lintel.All where
+text = "unclosed
+import Lintel.Lattice
+AGDA
+
+check missing 'the import keyword is case sensitive' <<'AGDA'
+module Lintel.All where
+Import Lintel.Lattice
+AGDA
+
+check missing 'the imported module name is case sensitive' <<'AGDA'
+module Lintel.All where
+import Lintel.lattice
+AGDA
+
 # The same stripped imports must cover every discovered module independently.
 mkdir -p "$fixture/src/Lintel/Nested"
 touch "$fixture/src/Lintel/Nested/Extra.agda"
@@ -262,5 +362,23 @@ AGDA
 check missing 'covered nested module does not mask an uncovered parent' <<'AGDA'
 module Lintel.All where
 -- import Lintel.Lattice
+import Lintel.Nested.Extra
+AGDA
+
+check missing 'every missing module is reported when all imports are commented' \
+  Lintel.Lattice Lintel.Nested.Extra <<'AGDA'
+module Lintel.All where
+{-
+import Lintel.Lattice
+{- import Lintel.Nested.Extra -}
+-}
+AGDA
+
+check covered 'one comment can close before an import and reopen around another' <<'AGDA'
+module Lintel.All where
+{- before
+-} import Lintel.Lattice {- after
+import Lintel.Nested.Extra
+-}
 import Lintel.Nested.Extra
 AGDA
