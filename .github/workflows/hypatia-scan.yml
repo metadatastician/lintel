@@ -12,8 +12,9 @@
 # repository's, so no pin this caller chooses can avoid it. Every job died in
 # "Set up job": two seconds, no steps, no findings, on every event, and the red
 # was indistinguishable from a real security failure. standards#1271 corrected
-# nine such leaf entries and missed this one. Measured on metadatastician/selur
-# at a post-#1271 pin: still `invalid lockfile pin`.
+# nine such leaf entries and missed this one; filed upstream as standards#1290.
+# Measured on metadatastician/selur main (run 39124697083, 2026-10-18) at pin
+# 8ff9ce65 — five commits AFTER #1271: still `invalid lockfile pin`.
 #
 # Until that leaf entry is corrected upstream, the standalone Hypatia scan is
 # suspended and this workflow does the next most useful thing on the same

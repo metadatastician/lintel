@@ -19,7 +19,12 @@ not "tidied away" into a real coverage gap.
   GitHub's lockfile validation rejects. Every job therefore died in "Set up
   job" — two seconds, no steps, no findings, on every event. standards#1271
   corrected nine such leaf entries and missed this one; measured on
-  `metadatastician/selur` at a post-#1271 pin, still red. No pin avoids it.
+  `metadatastician/selur` at a post-#1271 pin (main, run 39124697083,
+  2026-10-18), still `invalid lockfile pin` for that exact leaf. No pin avoids
+  it. Filed as
+  https://github.com/hyperpolymath/standards/issues/1290[standards#1290] with
+  the four measured tag refs and a request for a guard, so the next third-party
+  action cannot reintroduce it.
 
 Until that lands upstream, `hypatia-scan.yml` does the next most useful thing on
 the same triggers: it squabbles the gate. `hyperpolymath/cicd-squabbler`
