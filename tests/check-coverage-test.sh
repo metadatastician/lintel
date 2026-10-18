@@ -22,6 +22,14 @@ exit 42
 AGDA
 chmod +x "$fixture/agda"
 
+# check <covered|missing> <name> [missing-module ...]
+# Read a Lintel.All fixture from stdin and run the coverage gate with the fake
+# prover. For covered fixtures, require exit status 42 and the proof-started
+# marker, proving coverage reached the first proof invocation. For missing
+# fixtures, require exit status 1, no proof-started marker, and exactly the
+# supplied missing-module diagnostics (default: Lintel.Lattice).
+# Print PASS with the case name on success; print the captured gate output to
+# stderr and exit the test script with status 1 on an assertion failure.
 check() {
   local expected="$1" name="$2" status=0 expected_errors actual_errors
   local missing_modules=("${@:3}")
