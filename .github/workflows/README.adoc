@@ -5,16 +5,33 @@ This directory holds the repo's CI/CD. A few workflows *look* like they overlap
 but are deliberately distinct — documented here so the apparent duplication is
 not "tidied away" into a real coverage gap.
 
-== Hypatia runs in two places (on purpose)
+== Hypatia: one live consumer, one suspended
 
-* `hypatia-scan.yml` — the **standalone security scan** (push / PR / weekly).
-  Independent; this is the repo's own Hypatia coverage.
-* `static-analysis-gate.yml` -> `hypatia-scan` job — runs Hypatia as part of the
-  **gate**, then the `deposit-findings` job hands the results to the
-  **gitbot-fleet learning** pipeline. This job is also a *required status check*.
+* `static-analysis-gate.yml` -> `hypatia-scan` job — **live**. Runs Hypatia as
+  part of the **gate**, then the `deposit-findings` job hands the results to the
+  **gitbot-fleet learning** pipeline. This is the repo's working Hypatia
+  coverage, on every PR and every push to `main`.
+* `hypatia-scan.yml` — **suspended upstream, repurposed in the meantime.** This
+  was the standalone scan, and it cannot call
+  `standards/.github/workflows/hypatia-scan-reusable.yml`: that reusable uses
+  `github/codeql-action/upload-sarif@b96794f0…`, and standards' own
+  `actions.lock` still records that leaf as `ref: <the pin's own SHA>`, which
+  GitHub's lockfile validation rejects. Every job therefore died in "Set up
+  job" — two seconds, no steps, no findings, on every event. standards#1271
+  corrected nine such leaf entries and missed this one; measured on
+  `metadatastician/selur` at a post-#1271 pin, still red. No pin avoids it.
 
-Same tool, two different consumers (security scan vs fleet learning). Removing
-either loses real function — keep both.
+Until that lands upstream, `hypatia-scan.yml` does the next most useful thing on
+the same triggers: it squabbles the gate. `hyperpolymath/cicd-squabbler`
+classifies each red check as self-win | escalate | assign-owner, and attributes
+a `STARTUP_FAILURE` to the posture that actually caused it rather than to the
+reusable's owner or to a security scan — precisely the mis-attribution this red
+invited. It cannot cheat the gate: that repo's SPARK package proves
+green ⇔ a required check actually ran and passed.
+
+So Hypatia coverage was *not* traded away here; the second consumer was already
+dead, and this restores a live job in its place. When the upstream leaf entry is
+fixed, restore the standalone scan and re-point this file at the reusable.
 
 == Secret scanning is single-sourced *in CI* — and two-tier overall
 
@@ -55,7 +72,14 @@ pins), and gitleaks in CI catches a genuine SonarCloud token as `generic-api-key
 
 == SAST tools are complementary, not redundant
 
-* `codeql.yml` — CodeQL (matrix defaults to `actions`; every repo has workflows).
+* CodeQL — **default setup**, enabled in repo settings, not a workflow here. An
+  advanced `codeql.yml` used to sit alongside it, and the two are mutually
+  exclusive: GitHub rejects an advanced configuration's SARIF while default
+  setup is on, so the workflow ran the whole scan and threw the result away at
+  upload — a permanent red that looked like a security failure. Lintel's carried
+  no `queries:`, `config-file:` or `paths-ignore:`, so by
+  hyperpolymath/standards#1031 AC5 nothing was lost by deleting it. Do not
+  re-add `codeql.yml` without disabling default setup first.
 * `sonarqube.yml` — SonarCloud (shell / JS surface; see `sonar-project.properties`).
 * `static-analysis-gate.yml` — panic-attack + Hypatia gate (see above).
 

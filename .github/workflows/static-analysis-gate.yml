@@ -133,13 +133,17 @@ jobs:
   # ---------------------------------------------------------------------------
   # Job 2: hypatia-scan
   #
-  # NOTE — this is NOT a duplicate of the standalone `hypatia-scan.yml`.
+  # NOTE — this job is the repo's ONLY working Hypatia scan.
   #   * THIS job runs Hypatia inside the gate and hands its findings to the
   #     `deposit-findings` job below, which feeds the gitbot-fleet LEARNING
-  #     pipeline (artifact -> fleet). It is a REQUIRED status check.
-  #   * `hypatia-scan.yml` runs Hypatia standalone as the repo's security scan,
-  #     independent of the fleet-learning deposit.
-  # Same tool, two different consumers — keep both. See .github/workflows/README.adoc.
+  #     pipeline (artifact -> fleet).
+  #   * `hypatia-scan.yml` was the standalone second consumer, and it is
+  #     suspended: the standards reusable it calls cannot start, because
+  #     standards' own actions.lock records github/codeql-action with
+  #     `ref: <the pin's own SHA>` and GitHub rejects that as an invalid
+  #     lockfile pin. That file now squabbles the gate instead. Do not read
+  #     this job as the redundant half of a pair.
+  # See .github/workflows/README.adoc for the full history.
   # ---------------------------------------------------------------------------
   hypatia-scan:
     name: Hypatia neurosymbolic scan
