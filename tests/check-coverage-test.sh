@@ -504,6 +504,137 @@ import Lintel.Nested.Extra
 import Lintel.FooX
 AGDA
 
+
+# Exercise identifier continuations independently. Each temporary module is
+# removed before the next case so a missing import has exactly one diagnosis.
+for name in "Upper'X'" "lower'x'" "Digit7'X'" "Under_'X'" "Dash-'X'" "Double''X'" "Many'X'Y'Z'" "UnicodeΩ'X'"; do
+  touch "$fixture/src/Lintel/$name.agda"
+  check covered "apostrophes are preserved in $name" <<AGDA
+module Lintel.All where
+import Lintel.Lattice
+import Lintel.Nested.Extra
+import Lintel.Foo'X'
+import Lintel.$name
+AGDA
+
+  check missing "a line-commented import cannot cover $name" "Lintel.$name" <<AGDA
+module Lintel.All where
+import Lintel.Lattice
+import Lintel.Nested.Extra
+import Lintel.Foo'X'
+-- import Lintel.$name
+AGDA
+  rm "$fixture/src/Lintel/$name.agda"
+done
+
+mkdir -p "$fixture/src/Lintel/Outer'X'"
+touch "$fixture/src/Lintel/Outer'X'/Inner'Y'.agda"
+
+check covered 'apostrophes in both namespace and leaf module names' <<'AGDA'
+module Lintel.All where
+import Lintel.Lattice
+import Lintel.Nested.Extra
+import Lintel.Foo'X'
+{- before -} import {- between -} Lintel.Outer'X'.Inner'Y'{- after -}
+AGDA
+
+check missing 'nested comments cannot cover an apostrophe-named namespace' \
+  "Lintel.Outer'X'.Inner'Y'" <<'AGDA'
+module Lintel.All where
+import Lintel.Lattice
+import Lintel.Nested.Extra
+import Lintel.Foo'X'
+{- outer
+{- inner -}
+import Lintel.Outer'X'.Inner'Y'
+-}
+AGDA
+rm "$fixture/src/Lintel/Outer'X'/Inner'Y'.agda"
+
+# Preserving an apostrophe must not accidentally cover a shorter module.
+touch "$fixture/src/Lintel/Foo.agda"
+check missing 'an apostrophe-named import does not cover its unprimed prefix' \
+  Lintel.Foo <<'AGDA'
+module Lintel.All where
+import Lintel.Lattice
+import Lintel.Nested.Extra
+import Lintel.Foo'X'
+AGDA
+rm "$fixture/src/Lintel/Foo.agda"
+
+check missing 'a longer apostrophe-named import does not cover a shorter name' \
+  "Lintel.Foo'X'" <<'AGDA'
+module Lintel.All where
+import Lintel.Lattice
+import Lintel.Nested.Extra
+import Lintel.Foo'X'Extra
+AGDA
+
+check missing 'an import inside a string cannot cover an apostrophe-named module' \
+  "Lintel.Foo'X'" <<'AGDA'
+module Lintel.All where
+import Lintel.Lattice
+import Lintel.Nested.Extra
+text = "first line
+import Lintel.Foo'X'
+last line"
+AGDA
+
+check covered 'apostrophe-named imports survive adjacent comments' <<'AGDA'
+module Lintel.All where
+import Lintel.Lattice
+import Lintel.Nested.Extra
+{- before -}import{- between -}Lintel.Foo'X'{- after -}-- trailing
+AGDA
+
+check missing 'a comment cannot join fragments of an apostrophe-named module' \
+  "Lintel.Foo'X'" <<'AGDA'
+module Lintel.All where
+import Lintel.Lattice
+import Lintel.Nested.Extra
+import Lintel.Foo'{- gap -}X'
+AGDA
+
+printf "module Lintel.All where\r\nimport Lintel.Lattice\r\nimport Lintel.Nested.Extra\r\n\timport\tLintel.Foo'X'-- trailing" |
+  check covered 'apostrophe-named import with tabs, CRLF and no final newline'
+
+# A double-quote character is an observable probe: if it is mistaken for
+# identifier text, its quote opens a string and swallows subsequent imports.
+# These are lexical fixtures; the fake prover intentionally does not parse
+# declarations. Exercise each boundary without intervening whitespace
+# masking whether the preceding token was correctly replaced by whitespace.
+while IFS='|' read -r name literal; do
+  check covered "a double-quote character $name leaves imports active" <<AGDA
+module Lintel.All where
+label'
+$literal
+import Lintel.Lattice
+import Lintel.Nested.Extra
+import Lintel.Foo'X'
+AGDA
+
+  check missing "a double-quote character $name leaves comments active" \
+    "Lintel.Foo'X'" <<AGDA
+module Lintel.All where
+import Lintel.Lattice
+import Lintel.Nested.Extra
+label'
+$literal{-
+import Lintel.Foo'X'
+-}
+AGDA
+done <<'CASES'
+at the start of a new line|'"'
+after an opening parenthesis|label'('"'
+after a namespace dot|label'.'"'
+after a semicolon|label';'"'
+after a closing brace|label'}'"'
+after an at-sign|label'@'"'
+after a block comment|label'{- gap -}'"'
+after a string|label'"text"'"'
+after another character|'x''"'
+CASES
+
 touch "$fixture/src/Lintel/FooΔ'X'.agda"
 
 check covered 'apostrophes after Unicode name characters stay in the module name' <<'AGDA'
@@ -512,4 +643,27 @@ import Lintel.Lattice
 import Lintel.Nested.Extra
 import Lintel.Foo'X'
 import Lintel.FooΔ'X'
+AGDA
+
+# Operator characters are also Agda name characters. The final import lookup
+# must match them literally, including characters with a meaning in a regex.
+touch "$fixture/src/Lintel/Operator+'X'.agda"
+
+check missing 'a commented operator-named import cannot supply coverage' \
+  "Lintel.Operator+'X'" <<'AGDA'
+module Lintel.All where
+import Lintel.Lattice
+import Lintel.Nested.Extra
+import Lintel.Foo'X'
+import Lintel.FooΔ'X'
+-- import Lintel.Operator+'X'
+AGDA
+
+check covered 'an active operator-named import is matched literally' <<'AGDA'
+module Lintel.All where
+import Lintel.Lattice
+import Lintel.Nested.Extra
+import Lintel.Foo'X'
+import Lintel.FooΔ'X'
+import Lintel.Operator+'X'
 AGDA
