@@ -343,6 +343,66 @@ module Lintel.All where
 import Lintel.lattice
 AGDA
 
+# Exercise delimiter boundaries where comment and literal states interact.
+check covered 'an empty block comment separates import tokens' <<'AGDA'
+module Lintel.All where
+import{--}Lintel.Lattice
+AGDA
+
+check missing 'a block comment opener cannot overlap its closing delimiter' <<'AGDA'
+module Lintel.All where
+{-}
+import Lintel.Lattice
+AGDA
+
+check covered 'backslashes inside a block comment do not escape its closer' <<'AGDA'
+module Lintel.All where
+{- explanation \-} import Lintel.Lattice
+AGDA
+
+check covered 'line-comment text inside a block comment still allows nesting' <<'AGDA'
+module Lintel.All where
+{- outer
+-- {- inner
+-}
+-} import Lintel.Lattice
+AGDA
+
+check covered 'a trailing backslash does not continue a line comment' <<'AGDA'
+module Lintel.All where
+-- explanation \
+import Lintel.Lattice
+AGDA
+
+check covered 'an escaped double quote character does not open a string' <<'AGDA'
+module Lintel.All where
+quote = '\"'
+import Lintel.Lattice
+AGDA
+
+check missing 'a comment after an escaped double quote character still hides imports' <<'AGDA'
+module Lintel.All where
+quote = '\"' {-
+import Lintel.Lattice
+-}
+AGDA
+
+check missing 'an escaped backslash before an escaped quote keeps a string open' <<'AGDA'
+module Lintel.All where
+text = "backslash and quote: \\\"
+import Lintel.Lattice
+last line"
+AGDA
+
+check missing 'code after a closed trailing comment is not discarded' <<'AGDA'
+module Lintel.All where
+import Lintel.Lattice {- explanation -}Extra
+AGDA
+
+# Keep CRLFs and the missing final newline visible in the test definition.
+printf 'module Lintel.All where\r\n{- outer\r\n{- inner -}\r\n-}\timport\tLintel.Lattice-- trailing' |
+  check covered 'nested comments and a trailing line comment with CRLF at EOF'
+
 # The same stripped imports must cover every discovered module independently.
 mkdir -p "$fixture/src/Lintel/Nested"
 touch "$fixture/src/Lintel/Nested/Extra.agda"
@@ -363,6 +423,22 @@ check missing 'covered nested module does not mask an uncovered parent' <<'AGDA'
 module Lintel.All where
 -- import Lintel.Lattice
 import Lintel.Nested.Extra
+AGDA
+
+check missing 'duplicate imports cannot cover a different missing module' Lintel.Nested.Extra <<'AGDA'
+module Lintel.All where
+import Lintel.Lattice
+import Lintel.Lattice
+{- import Lintel.Nested.Extra -}
+AGDA
+
+check missing 'imports in a multiline string cannot cover either module' \
+  Lintel.Lattice Lintel.Nested.Extra <<'AGDA'
+module Lintel.All where
+text = "imports in a string
+import Lintel.Lattice
+import Lintel.Nested.Extra
+end of string"
 AGDA
 
 check missing 'every missing module is reported when all imports are commented' \
