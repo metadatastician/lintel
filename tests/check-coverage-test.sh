@@ -466,3 +466,40 @@ import Lintel.Nested.Extra
 -}
 import Lintel.Nested.Extra
 AGDA
+
+# Agda names may contain apostrophes (a name part is letters, digits and '-_),
+# so a quoted run inside a module name is part of the name, not a character
+# literal. Recognising literals only at a token boundary is what keeps an
+# active `import Lintel.Foo'X'` intact; recognising them anywhere rewrites it
+# to `import Lintel.Foo` and reports the module uncovered.
+check covered 'a character literal after an apostrophe-suffixed name is still a literal' <<'AGDA'
+module Lintel.All where
+label' = 'x'
+import Lintel.Lattice
+import Lintel.Nested.Extra
+AGDA
+
+touch "$fixture/src/Lintel/Foo'X'.agda"
+
+check covered 'an active import whose module name contains apostrophes' <<'AGDA'
+module Lintel.All where
+import Lintel.Lattice
+import Lintel.Nested.Extra
+import Lintel.Foo'X'
+AGDA
+
+check missing 'an apostrophe-named module is not covered when its import is commented' \
+  "Lintel.Foo'X'" <<'AGDA'
+module Lintel.All where
+import Lintel.Lattice
+import Lintel.Nested.Extra
+{- import Lintel.Foo'X' -}
+AGDA
+
+check missing 'a lookalike name without the apostrophes does not cover the module' \
+  "Lintel.Foo'X'" <<'AGDA'
+module Lintel.All where
+import Lintel.Lattice
+import Lintel.Nested.Extra
+import Lintel.FooX
+AGDA

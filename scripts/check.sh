@@ -44,9 +44,19 @@ flags=(--safe --without-K --no-libraries --ignore-interfaces --double-check -W e
 
 # 1. Coverage: a module that Lintel.All does not import is never checked.
 # Strip nested Agda comments once, before looking for active imports.
+#
+# A character literal is recognised only at a token boundary: Agda names may
+# contain apostrophes (agda.readthedocs.io, Lexical structure — a name part is
+# letters, digits and '-_), so in `import Lintel.Foo'X'` the quoted run is part
+# of the module name, not a literal. Stripping it would rewrite a real import
+# into `import Lintel.Foo` and report the module uncovered. `prev` is the last
+# character emitted as code; an empty `prev` is the start of the line, and a
+# space is what a stripped comment, string or literal leaves behind, so both
+# count as boundaries.
 imports="$(awk '
   {
     code = ""
+    prev = ""
     for (i = 1; i <= length($0); i++) {
       c = substr($0, i, 1); pair = substr($0, i, 2)
       if (depth) {
@@ -58,13 +68,14 @@ imports="$(awk '
       } else if (pair == "--") {
         break
       } else if (pair == "{-") {
-        depth++; i++; code = code " "
+        depth++; i++; code = code " "; prev = " "
       } else if (c == "\"") {
-        quoted = 1; code = code " "
-      } else if (match(substr($0, i), /^\047([^\047\\]|\\.)\047/)) {
-        i += RLENGTH - 1; code = code " "
+        quoted = 1; code = code " "; prev = " "
+      } else if (c == "\047" && prev !~ /[A-Za-z0-9_\047-]/ &&
+                 match(substr($0, i), /^\047([^\047\\]|\\.)\047/)) {
+        i += RLENGTH - 1; code = code " "; prev = " "
       } else {
-        code = code c
+        code = code c; prev = c
       }
     }
     print code
