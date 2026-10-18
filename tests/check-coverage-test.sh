@@ -467,7 +467,7 @@ import Lintel.Nested.Extra
 import Lintel.Nested.Extra
 AGDA
 
-# Agda names may contain apostrophes (a name part is letters, digits and '-_),
+# Agda names may contain apostrophes and most non-whitespace Unicode characters,
 # so a quoted run inside a module name is part of the name, not a character
 # literal. Recognising literals only at a token boundary is what keeps an
 # active `import Lintel.Foo'X'` intact; recognising them anywhere rewrites it
@@ -502,4 +502,14 @@ module Lintel.All where
 import Lintel.Lattice
 import Lintel.Nested.Extra
 import Lintel.FooX
+AGDA
+
+touch "$fixture/src/Lintel/FooΔ'X'.agda"
+
+check covered 'apostrophes after Unicode name characters stay in the module name' <<'AGDA'
+module Lintel.All where
+import Lintel.Lattice
+import Lintel.Nested.Extra
+import Lintel.Foo'X'
+import Lintel.FooΔ'X'
 AGDA

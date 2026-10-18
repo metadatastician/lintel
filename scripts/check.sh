@@ -46,13 +46,14 @@ flags=(--safe --without-K --no-libraries --ignore-interfaces --double-check -W e
 # Strip nested Agda comments once, before looking for active imports.
 #
 # A character literal is recognised only at a token boundary: Agda names may
-# contain apostrophes (agda.readthedocs.io, Lexical structure — a name part is
-# letters, digits and '-_), so in `import Lintel.Foo'X'` the quoted run is part
-# of the module name, not a literal. Stripping it would rewrite a real import
-# into `import Lintel.Foo` and report the module uncovered. `prev` is the last
-# character emitted as code; an empty `prev` is the start of the line, and a
-# space is what a stripped comment, string or literal leaves behind, so both
-# count as boundaries.
+# contain apostrophes and most non-whitespace Unicode characters
+# (agda.readthedocs.io, Lexical structure), so in `import Lintel.FooΔ'X'` the
+# quoted run is part of the module name, not a literal. Stripping it would
+# rewrite a real import into `import Lintel.FooΔ` and report the module
+# uncovered. `prev` is the last character emitted as code; an empty `prev`
+# is the start of the line, and a space is what a stripped comment, string or
+# literal leaves behind, so both count as boundaries, as do Agda special
+# symbols: .;{}()@".
 imports="$(awk '
   {
     code = ""
@@ -71,7 +72,7 @@ imports="$(awk '
         depth++; i++; code = code " "; prev = " "
       } else if (c == "\"") {
         quoted = 1; code = code " "; prev = " "
-      } else if (c == "\047" && prev !~ /[A-Za-z0-9_\047-]/ &&
+      } else if (c == "\047" && (prev == "" || prev ~ /[[:space:].;{}()@"]/) &&
                  match(substr($0, i), /^\047([^\047\\]|\\.)\047/)) {
         i += RLENGTH - 1; code = code " "; prev = " "
       } else {
