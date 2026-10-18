@@ -86,7 +86,21 @@ missing=0
 while IFS= read -r file; do
   module="${file#src/}"; module="${module%.agda}"; module="${module//\//.}"
   [ "$module" = Lintel.All ] && continue
-  if ! grep -qE "^[[:space:]]*import[[:space:]]+${module//./\\.}[[:space:]]*\$" <<< "$imports"; then
+  # The module name is literal text, not a regular expression.  Agda names may
+  # carry `.`, `+`, `*`, `(`, `|` and friends, and only `.` was escaped, so
+  # `Lintel.Operator+'X'` never matched itself: `Operator+` reads as "Operato,
+  # then one or more r".  Compare literally instead of building a pattern — the
+  # only regular expression left is the `import` keyword and its separator.
+  if ! awk -v mod="$module" '
+        {
+          line = $0
+          sub(/^[[:space:]]+/, "", line)
+          if (line !~ /^import[[:space:]]+/) next
+          sub(/^import[[:space:]]+/, "", line)
+          sub(/[[:space:]]+$/, "", line)
+          if (line == mod) found = 1
+        }
+        END { exit found ? 0 : 1 }' <<< "$imports"; then
     echo "ERROR: $module is not imported by src/Lintel/All.agda" >&2
     missing=1
   fi
