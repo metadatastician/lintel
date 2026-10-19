@@ -27,7 +27,21 @@ updates:
       # name, so a bare "github/codeql-action" matches NONE of them. That is
       # how #210 bumped 4.38.0 -> 4.38.2 straight through this hold and left
       # actions.lock out of sync (#217).
+      #
+      # This repo no longer carries codeql.yml (default setup is on; an
+      # advanced workflow's SARIF is rejected while it is). The hold stays
+      # because actions.lock still records codeql-action as a TRANSITIVE
+      # dependency of the standards reusables, and Dependabot rewrites lock
+      # entries it did not create.
       - dependency-name: "github/codeql-action*"
+      # HOLD: hyperpolymath/cicd-squabbler is pinned to a commit SHA in
+      # hypatia-scan.yml, as that action's README requires. Dependabot's
+      # github-actions updater narrows bare-SHA pins to the nearest tag
+      # (github/gh-actions-lock#130, metadatastian/marid#36), and v0.1.0
+      # predates the action directory, so a narrowed pin has no action.yml and
+      # the workflow would die at job start. Bump it deliberately, together
+      # with the lock entry's ref (see the comment in hypatia-scan.yml).
+      - dependency-name: "hyperpolymath/cicd-squabbler*"
 
   # Rust/Cargo
   #

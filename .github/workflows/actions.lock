@@ -210,7 +210,7 @@ dependencies:
         owner_id: 75048950
         repo_id: 623796603
     'hyperpolymath/cicd-squabbler@faace16aa967501df99e2cde648f4209565cd006':
-        ref: 'faace16aa967501df99e2cde648f4209565cd006'
+        ref: 'main'
         commit: 'sha1-faace16aa967501df99e2cde648f4209565cd006'
         owner_id: 6759885
         repo_id: 1284026967
