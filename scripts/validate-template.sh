@@ -208,7 +208,18 @@ echo ""
 
 REQUIRED_WORKFLOWS=(
     "hypatia-scan.yml"
-    "codeql.yml"
+    # codeql.yml was removed here, not merely left unreferenced. This repo runs
+    # GitHub's CodeQL DEFAULT setup, and GitHub rejects an advanced
+    # configuration's SARIF while default setup is enabled ("CodeQL analyses
+    # from advanced configurations cannot be processed when the default setup
+    # is enabled"), so the workflow did the whole scan and threw the result
+    # away at upload — a permanent red indistinguishable from a real finding.
+    # standards#1031 AC5: diff the advanced workflow against default-setup
+    # coverage first, and if nothing custom is lost, keep default setup and
+    # delete the advanced one. Lintel's carried no `queries:`, no
+    # `config-file:` and no `paths-ignore:`; its whole matrix was
+    # `language: actions, build-mode: none`. Keeping the name listed here would
+    # repeat the exact defect the comment below describes.
     "scorecard.yml"
     "quality.yml"
     "mirror.yml"

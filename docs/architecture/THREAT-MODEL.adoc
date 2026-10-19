@@ -168,7 +168,7 @@ NOTE: See link:../STATE-VISUALIZER.adoc[STATE-VISUALIZER.adoc] for the full arch
 - **Container Runtime**: Hardened container runtime with formal verification (optional)
 - **Dependency Pinning**: All GitHub Actions SHA-pinned; lockfiles committed
 - **Workflow Validation**: workflow-linter.yml checks all workflow changes
-- **Security Scanning**: Neurosymbolic scanning (hypatia-scan.yml, optional)
+- **Security Scanning**: Neurosymbolic scanning (the `hypatia-scan` job in `static-analysis-gate.yml`; the standalone `hypatia-scan.yml` is suspended upstream — see `.github/workflows/README.adoc`)
 - **Bot Governance**: Bot orchestration with confidence thresholds (optional)
 - **Edge Security**: Gateway with policy enforcement (optional, where applicable)
 - **SBOM**: Generated and published with releases

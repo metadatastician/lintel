@@ -5,9 +5,6 @@ version: 'v0.0.3'
 workflows:
     '.github/workflows/build-notification.yml':
         - 'actions/checkout@v7.0.1'
-    '.github/workflows/codeql.yml':
-        - 'actions/checkout@v7.0.1'
-        - 'github/codeql-action@24c54180a607b1449ed407dd24f251e4e9147c8d'
     '.github/workflows/deed-validate.yml':
         - 'actions/checkout@v7.0.1'
         - 'hyperpolymath/deed-ecosystem@main'
@@ -31,13 +28,13 @@ workflows:
     '.github/workflows/estate-rules.yml':
         - 'actions/checkout@v7.0.1'
     '.github/workflows/governance.yml':
-        - 'hyperpolymath/standards@6a9251037760690d56022ad6fab2cfe9d887dd76'
+        - 'hyperpolymath/standards@e16a23170fa378bf3b1444c3ee94100413ae3ff7'
     '.github/workflows/groove-check.yml':
         - 'actions/checkout@v7.0.1'
     '.github/workflows/guix-policy.yml':
         - 'actions/checkout@v7.0.1'
     '.github/workflows/hypatia-scan.yml':
-        - 'hyperpolymath/standards@6a9251037760690d56022ad6fab2cfe9d887dd76'
+        - 'hyperpolymath/cicd-squabbler@faace16aa967501df99e2cde648f4209565cd006'
     '.github/workflows/k9-validate.yml':
         - 'actions/checkout@v7.0.1'
         - 'hyperpolymath/k9-ecosystem@main'
@@ -47,7 +44,7 @@ workflows:
     '.github/workflows/main-estate-audit.yml':
         - 'hyperpolymath/cicd-suite@55556cf5ba71ba744695861503c13148d3915a5d'
     '.github/workflows/mirror.yml':
-        - 'hyperpolymath/standards@6a9251037760690d56022ad6fab2cfe9d887dd76'
+        - 'hyperpolymath/standards@e16a23170fa378bf3b1444c3ee94100413ae3ff7'
     '.github/workflows/ossf-best-practices.yml':
         - 'actions/checkout@v7.0.1'
     '.github/workflows/pages.yml':
@@ -74,11 +71,11 @@ workflows:
     '.github/workflows/runtime-policy.yml':
         - 'actions/checkout@v7.0.1'
     '.github/workflows/rust-ci.yml':
-        - 'hyperpolymath/standards@6a9251037760690d56022ad6fab2cfe9d887dd76'
+        - 'hyperpolymath/standards@e16a23170fa378bf3b1444c3ee94100413ae3ff7'
     '.github/workflows/scorecard.yml':
-        - 'hyperpolymath/standards@6a9251037760690d56022ad6fab2cfe9d887dd76'
+        - 'hyperpolymath/standards@e16a23170fa378bf3b1444c3ee94100413ae3ff7'
     '.github/workflows/secret-scanner.yml':
-        - 'hyperpolymath/standards@6a9251037760690d56022ad6fab2cfe9d887dd76'
+        - 'hyperpolymath/standards@e16a23170fa378bf3b1444c3ee94100413ae3ff7'
     '.github/workflows/security-policy.yml':
         - 'actions/checkout@v7.0.1'
     '.github/workflows/sonarqube.yml':
@@ -197,11 +194,6 @@ dependencies:
         commit: 'sha1-54075bcc5e249e4758d363f27d099f55d843f124'
         owner_id: 47606891
         repo_id: 331103973
-    'github/codeql-action@24c54180a607b1449ed407dd24f251e4e9147c8d':
-        ref: 'v4.38.3'
-        commit: 'sha1-24c54180a607b1449ed407dd24f251e4e9147c8d'
-        owner_id: 9919
-        repo_id: 259445878
     'github/codeql-action@b96794f015dfd88f77b49b1c93e0fa7110f94c63':
         ref: 'b96794f015dfd88f77b49b1c93e0fa7110f94c63'
         commit: 'sha1-b96794f015dfd88f77b49b1c93e0fa7110f94c63'
@@ -217,6 +209,11 @@ dependencies:
         commit: 'sha1-0f8e8c99d88aeb3fbfd523f1ef2c6f762d10d64d'
         owner_id: 75048950
         repo_id: 623796603
+    'hyperpolymath/cicd-squabbler@faace16aa967501df99e2cde648f4209565cd006':
+        ref: 'faace16aa967501df99e2cde648f4209565cd006'
+        commit: 'sha1-faace16aa967501df99e2cde648f4209565cd006'
+        owner_id: 6759885
+        repo_id: 1284026967
     'hyperpolymath/cicd-suite@0da816c05ae7486671d863e07935f93981c0c2d5':
         ref: '0da816c05ae7486671d863e07935f93981c0c2d5'
         commit: 'sha1-0da816c05ae7486671d863e07935f93981c0c2d5'
@@ -245,9 +242,9 @@ dependencies:
         commit: 'sha1-c1c9fa07992a02c1fd3d67a0dc1b08cccb852aef'
         owner_id: 6759885
         repo_id: 1352485172
-    'hyperpolymath/standards@6a9251037760690d56022ad6fab2cfe9d887dd76':
-        ref: '6a9251037760690d56022ad6fab2cfe9d887dd76'
-        commit: 'sha1-6a9251037760690d56022ad6fab2cfe9d887dd76'
+    'hyperpolymath/standards@e16a23170fa378bf3b1444c3ee94100413ae3ff7':
+        ref: 'e16a23170fa378bf3b1444c3ee94100413ae3ff7'
+        commit: 'sha1-e16a23170fa378bf3b1444c3ee94100413ae3ff7'
         owner_id: 6759885
         repo_id: 1116521501
         uses:

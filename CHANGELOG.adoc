@@ -86,6 +86,52 @@ https://semver.org/spec/v2.0.0.html[Semantic Versioning].
 
 ==== Fixed
 
+* `codeql.yml` was deleted. CodeQL default setup is enabled in the repository
+  settings and an advanced configuration is mutually exclusive with it, so
+  GitHub accepted the scan and rejected the SARIF at upload: the workflow ran a
+  full analysis and discarded the result, red on every event, and the red read
+  as a security failure rather than as a configuration conflict. Per
+  standards#1031 AC5 the advanced workflow was diffed first — it carried no
+  `queries:`, `config-file:`, `paths-ignore:` or extra matrix language, so
+  default setup loses nothing. Re-adding `codeql.yml` requires disabling
+  default setup first.
+* The standalone Hypatia scan was permanently red for a reason no pin in this
+  repository could reach: `hypatia-scan-reusable.yml` uses
+  `github/codeql-action/upload-sarif@b96794f…`, and standards' own
+  `actions.lock` still records that leaf as `ref:` the pin's own SHA, which
+  GitHub rejects as an invalid lockfile pin. The lock consulted for a reusable
+  workflow's dependencies is the defining repository's, so every job died in
+  "Set up job" — two seconds, no steps, no findings. standards#1271 corrected
+  nine such entries and missed this one; filed as
+  https://github.com/hyperpolymath/standards/issues/1290[standards#1290] with
+  the measured tag refs. `hypatia-scan.yml` now squabbles the gate instead, via
+  the pinned and attested `hyperpolymath/cicd-squabbler` composite action, and
+  Hypatia coverage is unaffected — the scanner still runs in
+  `static-analysis-gate.yml` on every PR and push.
+* The Agda coverage gate read module names as regular expressions. Only `.`
+  was escaped, so a module named `Lintel.Operator+'X'` never matched its own
+  import line (`Operator+` reads as "Operato, then one or more r") and a
+  covered module was reported missing. The comparison is now literal, and
+  `tests/check-coverage-test.sh` (115 fixtures) drives the scanner against a
+  fake prover to prove it fails when coverage is genuinely absent.
+* The coverage gate also recognised an Agda character literal anywhere on a
+  line, so `import Lintel.Foo'X'` lost its `'X'`. A literal is now recognised
+  only at a token boundary; apostrophes inside a name stay part of the name.
+  That suite now runs in `.github/workflows/proofs.yml` and as
+  `just proof-check-coverage-selftest`; before this it ran nowhere in CI.
+* The shared estate reusables could not start. GitHub now enforces the actions
+  lockfile, and the lock consulted for a reusable's dependencies is the
+  defining repository's, whose leaf entries carried `ref: <the pin's own SHA>`
+  until hyperpolymath/standards#1271. This repo was pinned to `6a925103`,
+  which predates it, so all of governance, secret-scanner, rust-ci and hypatia
+  died in "Set up job" with "invalid lockfile pin". Pinned to `e16a2317`.
+* `scorecard.yml` never granted the reusable's required `actions: read`: a
+  job-level `permissions:` block replaces the workflow-level one instead of
+  merging with it, so the scheduled run died as `startup_failure`.
+* `docs/architecture/REPOSITORY-MAP.adoc` was committed stale at mint — it
+  still listed the template's `archetypes` seam and
+  `rsr-template-repo_chora.deed`, and had no `lintel_chora.deed`. Estate Rules
+  died at step 5 on every run of this repo, so steps 6-25 had never executed.
 * The mint's self-name pass keeps issue references. It rewrote
   `lintel#N`, a reference to this template's own issue, into
   `<child>#N`, which names an issue of the child that does not exist or is

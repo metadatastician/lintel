@@ -1,30 +1,108 @@
-# This workflow is managed by gh actions-lock.
 # SPDX-License-Identifier: MPL-2.0
+# SPDX-FileCopyrightText: 2026 Jonathan D.A. Jewell
 #
-# Standalone Hypatia security scan (push / PR / weekly). This is NOT a duplicate
-# of the `hypatia-scan` job in `static-analysis-gate.yml`: that job exists to
-# feed the gitbot-fleet LEARNING pipeline (via `deposit-findings`), whereas this
-# workflow is the repo's independent security scan. Same tool, two consumers.
+# INTERIM. This workflow used to call
+#   hyperpolymath/standards/.github/workflows/hypatia-scan-reusable.yml
+# and it cannot. That reusable uses
+#   github/codeql-action/upload-sarif@b96794f015dfd88f77b49b1c93e0fa7110f94c63
+# and standards' OWN actions.lock still records that leaf as
+#   ref: 'b96794f015dfd88f77b49b1c93e0fa7110f94c63'
+# — the pin's own SHA, which GitHub's lockfile validation rejects as an invalid
+# pin. The lock consulted for a reusable workflow's dependencies is the DEFINING
+# repository's, so no pin this caller chooses can avoid it. Every job died in
+# "Set up job": two seconds, no steps, no findings, on every event, and the red
+# was indistinguishable from a real security failure. standards#1271 corrected
+# nine such leaf entries and missed this one; filed upstream as standards#1290.
+# Measured on metadatastician/selur main (run 39124697083, 2026-10-18) at pin
+# 8ff9ce65 — five commits AFTER #1271: still `invalid lockfile pin`.
+#
+# Until that leaf entry is corrected upstream, the standalone Hypatia scan is
+# suspended and this workflow does the next most useful thing on the same
+# triggers: it squabbles the gate. hyperpolymath/cicd-squabbler classifies each
+# red check as self-win | escalate | assign-owner, and attributes a
+# STARTUP_FAILURE to the posture that actually caused it rather than to the
+# reusable's owner or to a security scan — which is exactly the mis-attribution
+# this red invited. It cannot cheat past the gate: the SPARK package in that
+# repository proves green <=> a required check actually ran and passed, so an
+# admin override and a dropped required context are provably not paths to green.
+#
+# Hypatia coverage is NOT lost by this: static-analysis-gate.yml still runs the
+# scanner on every PR and push, and deposits its findings for gitbot-fleet.
 # See .github/workflows/README.adoc.
-name: Hypatia Security Scan
+#
+# To restore the standalone scan: re-point this job at the reusable once
+# standards' actions.lock carries a tag ref for github/codeql-action, and put
+# the lock entry for it back.
+name: Gate Squabble (interim for the suspended Hypatia scan)
 
 on:
-  push:
-    branches: [main, master, develop]
   pull_request:
     branches: [main, master]
-  schedule:
-    - cron: '0 0 * * 0'
   workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
+
 permissions:
-  actions: read      # required by the reusable workflow (staleness check reads workflow runs)
   contents: read
-  security-events: write
 
 jobs:
-  hypatia:
-    uses: hyperpolymath/standards/.github/workflows/hypatia-scan-reusable.yml@6a9251037760690d56022ad6fab2cfe9d887dd76
+  squabble:
+    name: Classify every red check as self-win, escalate or assign
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    # All read, and each one is used: the planner reads workflow ground-truth
+    # (actions), the PR's check runs (checks), the PR itself (pull-requests).
+    permissions:
+      actions: read
+      checks: read
+      contents: read
+      pull-requests: read
+    steps:
+      # Installs one exact squabble release binary. install.sh verifies the
+      # asset's sha256 AND its build-provenance attestation before making it
+      # executable, so nothing runs until both pass. No `args:`, so this step
+      # installs only. Deliberately the one HARD assertion in this job: it is
+      # the supply-chain canary for the binary the rest of the estate is being
+      # asked to trust, and it does not depend on any permission this token
+      # cannot hold.
+      - name: Install the pinned, attested squabble binary
+        uses: hyperpolymath/cicd-squabbler/.github/actions/squabble@faace16aa967501df99e2cde648f4209565cd006
+
+      - name: Fetch and diagnose this PR's gate
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          set -uo pipefail
+          squabble --version
+          if [ -z "${PR}" ]; then
+            echo "::notice::not a pull-request event; squabble fetch needs a PR number. The attested install above is the canary on this event."
+            exit 0
+          fi
+          rc=0
+          squabble fetch "${GITHUB_REPOSITORY}" "${PR}" > gate.json || rc=$?
+          # The CLI documents these exit codes, and separating them is the
+          # whole reason 3 exists: a caller that cannot tell "there is nothing
+          # here to triage" from "the tool is broken" must either mute real
+          # breakage or fail the build on a true non-finding.
+          #
+          # The remaining non-zero is a WARNING here, not a failure, for one
+          # stated reason: reading branch rules needs Administration:read,
+          # which github.token cannot hold. A 403 on that surface is a fact
+          # about this token, not a finding about this repository, and failing
+          # the job on it would replace one meaningless red with another.
+          case "${rc}" in
+            0)
+              ;;
+            3)
+              echo "::notice::no required_status_checks rule on the base branch, so there is nothing to triage. That is itself a finding: this repo's main gates merges on reviews alone, so no red check blocks anything."
+              ;;
+            *)
+              echo "::warning::squabble fetch exited ${rc}; the branch-rules surface needs Administration:read, which github.token cannot hold. Not treated as a failure — see the comment above."
+              ;;
+          esac
+          if [ -s gate.json ]; then
+            squabble diagnose gate.json
+          fi

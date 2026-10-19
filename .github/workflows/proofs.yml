@@ -37,6 +37,14 @@ jobs:
           persist-credentials: false
       - name: Verify the checked Agda version
         run: test "$(agda --version)" = 'Agda version 2.6.4.3'
+      # Prove the coverage instrument works before trusting its reading. The
+      # gate's first claim is "every module under src/Lintel is imported by
+      # Lintel.All", and a scanner that reads module names as regular
+      # expressions silently mis-reports them. This suite is the control for
+      # that claim; it ran nowhere in CI, which is how a red suite reached the
+      # branch unnoticed.
+      - name: Coverage gate self-test (must fail on drift)
+        run: bash tests/check-coverage-test.sh
       - name: Fetch siblings at their pinned commits
         run: bash scripts/fetch-siblings.sh
       - name: Proof gate
