@@ -53,12 +53,16 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     # All read, and each one is used: the planner reads workflow ground-truth
-    # (actions), the PR's check runs (checks), the PR itself (pull-requests).
+    # (actions), the PR's check runs and commit statuses (checks, statuses),
+    # the PR itself (pull-requests), and install.sh reads the release's
+    # build-provenance attestation (attestations) before it runs anything.
     permissions:
       actions: read
+      attestations: read
       checks: read
       contents: read
       pull-requests: read
+      statuses: read
     steps:
       # Installs one exact squabble release binary. install.sh verifies the
       # asset's sha256 AND its build-provenance attestation before making it
@@ -67,6 +71,15 @@ jobs:
       # the supply-chain canary for the binary the rest of the estate is being
       # asked to trust, and it does not depend on any permission this token
       # cannot hold.
+      #
+      # The ref is a commit SHA, as the action's own README requires. In a
+      # lockfile-managed repo a bare SHA needs its lock entry's `ref:` to name
+      # the BRANCH OR TAG that sha was resolved from — `ref: <the same sha>` is
+      # rejected at job start as an "invalid lockfile pin", the exact defect
+      # this file documents upstream. actions.lock therefore records
+      # ref: 'main' against this commit. Do not "tidy" that to the SHA, and do
+      # not let a tool narrow the pin to tag v0.1.0: that tag predates this
+      # action, so it has no action.yml to resolve.
       - name: Install the pinned, attested squabble binary
         uses: hyperpolymath/cicd-squabbler/.github/actions/squabble@faace16aa967501df99e2cde648f4209565cd006
 

@@ -128,6 +128,28 @@ https://semver.org/spec/v2.0.0.html[Semantic Versioning].
 * `scorecard.yml` never granted the reusable's required `actions: read`: a
   job-level `permissions:` block replaces the workflow-level one instead of
   merging with it, so the scheduled run died as `startup_failure`.
+* The gate-squabble workflow added in this branch was itself killed at "Set up
+  job" by the very defect it documents. Its `actions.lock` entry recorded
+  `ref:` as the pin's own commit SHA, and GitHub validates a lock entry's `ref`
+  as a git ref: a bare SHA resolves to nothing, so the job died in two seconds
+  with "invalid lockfile pin". The entry now records `ref: 'main'` (the branch
+  that commit was resolved from) while `uses:` stays a full SHA, as
+  `hyperpolymath/cicd-squabbler`'s README requires; the job also grants the
+  `attestations: read` and `statuses: read` its steps actually use, and
+  Dependabot is held off the pin so it cannot narrow it to tag `v0.1.0`, which
+  predates the action directory.
+* `repo-init` hardcoded the original template's name in the deed lookup,
+  the placeholder seds, the self-name pass and the provenance parent. A repo
+  minted from a minted repo therefore renamed no deed (the file is
+  `<parent>_chora.deed`), rewrote no literal, and aborted at the identity step
+  because `${REPO}_chora.deed` was never created — while
+  `docs/architecture/REPOSITORY-MAP.adoc` claimed the rename happened. The
+  template's own owner and slug are now derived from the git remote (Justfile
+  as fallback), the self-name pass is parameterised and escapes a dotted slug,
+  and the deed is found by shape in `scripts/repo-deed.sh`, which refuses a
+  missing, ambiguous or unsafe name. `tests/workflows/self_name_pass_test.sh`
+  now drives a second-generation mint (including a `<Name>.jl` parent) and
+  `tests/workflows/deed_rename_test.sh` covers the lookup and rename.
 * `docs/architecture/REPOSITORY-MAP.adoc` was committed stale at mint — it
   still listed the template's `archetypes` seam and
   `rsr-template-repo_chora.deed`, and had no `lintel_chora.deed`. Estate Rules
