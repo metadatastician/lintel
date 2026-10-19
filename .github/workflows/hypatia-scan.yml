@@ -16,9 +16,16 @@
 # Measured on metadatastician/selur main (run 39124697083, 2026-10-18) at pin
 # 8ff9ce65 — five commits AFTER #1271: still `invalid lockfile pin`.
 #
-# Until that leaf entry is corrected upstream, the standalone Hypatia scan is
-# suspended and this workflow does the next most useful thing on the same
-# triggers: it squabbles the gate. hyperpolymath/cicd-squabbler classifies each
+# UPDATED 2026-10-19: standards#1290 was fixed upstream — standards#1285
+# (cf8f912) made those leaf entries carry their tag refs, and `main` at
+# 86484d3 now has none of them as a bare SHA. This repository is still pinned
+# to standards e16a231, which PREDATES that fix, so the reusable would still
+# die at "Set up job" here. Un-suspending the standalone scan therefore needs a
+# deliberate pin bump past cf8f912 (plus its transitive lock records), not a
+# re-point alone; that is tracked separately from this interim job.
+#
+# Until that bump lands, this workflow does the next most useful thing on the
+# same triggers: it squabbles the gate. hyperpolymath/cicd-squabbler classifies each
 # red check as self-win | escalate | assign-owner, and attributes a
 # STARTUP_FAILURE to the posture that actually caused it rather than to the
 # reusable's owner or to a security scan — which is exactly the mis-attribution
@@ -30,9 +37,11 @@
 # scanner on every PR and push, and deposits its findings for gitbot-fleet.
 # See .github/workflows/README.adoc.
 #
-# To restore the standalone scan: re-point this job at the reusable once
-# standards' actions.lock carries a tag ref for github/codeql-action, and put
-# the lock entry for it back.
+# To restore the standalone scan: bump the standards pin past cf8f912, add this
+# workflow's lock record for `hyperpolymath/standards@<new pin>` (including its
+# nested `uses:`), and re-point the job at the reusable. HYPATIA_SCAN_PAT is
+# optional — the reusable falls back to github.token — so no secret is a
+# prerequisite.
 name: Gate Squabble (interim for the suspended Hypatia scan)
 
 on:
