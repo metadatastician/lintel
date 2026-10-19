@@ -26,8 +26,12 @@ not "tidied away" into a real coverage gap.
   the four measured tag refs and a request for a guard, so the next third-party
   action cannot reintroduce it.
 
-Until that lands upstream, `hypatia-scan.yml` does the next most useful thing on
-the same triggers: it squabbles the gate. `hyperpolymath/cicd-squabbler`
+That upstream fix landed in standards#1285 (`cf8f912`), and standards `main`
+carries no such leaf entry any more. This repository is pinned to `e16a231`,
+which predates it, so un-suspending the standalone scan needs a deliberate pin
+bump past `cf8f912` together with its transitive lock records — not a
+re-point. Until then, `hypatia-scan.yml` does the next most useful thing on the
+same triggers: it squabbles the gate. `hyperpolymath/cicd-squabbler`
 classifies each red check as self-win | escalate | assign-owner, and attributes
 a `STARTUP_FAILURE` to the posture that actually caused it rather than to the
 reusable's owner or to a security scan — precisely the mis-attribution this red

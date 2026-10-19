@@ -128,6 +128,13 @@ https://semver.org/spec/v2.0.0.html[Semantic Versioning].
 * `scorecard.yml` never granted the reusable's required `actions: read`: a
   job-level `permissions:` block replaces the workflow-level one instead of
   merging with it, so the scheduled run died as `startup_failure`.
+* The standalone Hypatia scan is still suspended for a reason that has since
+  expired upstream. standards#1285 (`cf8f912`) gave the four leaf entries their
+  tag refs, so standards `main` no longer causes "invalid lockfile pin". This
+  repository pins `e16a231`, which predates that fix, so restoring the scan is
+  now a pin bump plus its transitive lock records — recorded in
+  `hypatia-scan.yml` and `.github/workflows/README.adoc` instead of the previous
+  "until the leaf is corrected" claim.
 * The gate-squabble workflow added in this branch was itself killed at "Set up
   job" by the very defect it documents. Its `actions.lock` entry recorded
   `ref:` as the pin's own commit SHA, and GitHub validates a lock entry's `ref`
