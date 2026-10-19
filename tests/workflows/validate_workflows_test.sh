@@ -90,7 +90,10 @@ echo ""
 
 REQUIRED_WORKFLOWS=(
     "hypatia-scan.yml"
-    "codeql.yml"
+    # Removed with the workflow: CodeQL default setup is enabled on this repo,
+    # which makes an advanced codeql.yml's SARIF upload fail unconditionally.
+    # Nothing custom was lost — see the note in scripts/validate-template.sh
+    # and hyperpolymath/standards#1031 AC5.
     "scorecard.yml"
     "quality.yml"
     "mirror.yml"

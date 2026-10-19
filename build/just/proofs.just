@@ -9,7 +9,7 @@
 # `just proof-check-all` for the full sweep.
 
 # Check all formal proofs (Idris2 + Lean4 + Agda + Coq, and the Lintel Agda gate)
-proof-check-all: proof-check-idris2 proof-check-lean4 proof-check-agda proof-check-coq proof-check-lintel proof-scan-dangerous
+proof-check-all: proof-check-idris2 proof-check-lean4 proof-check-agda proof-check-coq proof-check-coverage-selftest proof-check-lintel proof-scan-dangerous
     @echo "=== All proof checks complete ==="
 
 # Each proof-check-<prover> delegates to scripts/check-proofs.sh, the single
@@ -34,8 +34,17 @@ proof-check-agda:
 proof-check-coq:
     @bash scripts/check-proofs.sh coq
 
+# The control for the coverage gate's first claim: "every module under
+# src/Lintel is imported by Lintel.All". 115 fixtures drive scripts/check.sh's
+# scanner against a fake prover, so the claim is only trusted once the
+# instrument is known to fail when coverage is genuinely absent. Needs no
+# prover and no siblings.
+# Prove the coverage instrument can fail (115 fixtures; no agda needed)
+proof-check-coverage-selftest:
+    @bash tests/check-coverage-test.sh
+
 # LNT-01: siblings at their pins, then the lattice laws, positive controls and
-# expected rejections. The same two scripts run in .github/workflows/proofs.yml.
+# expected rejections. The same scripts run in .github/workflows/proofs.yml.
 # Check Lintel's Agda proofs (siblings pinned; fatal if agda absent)
 proof-check-lintel:
     @bash scripts/fetch-siblings.sh

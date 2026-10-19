@@ -92,6 +92,11 @@ jobs:
         run: bash tests/workflows/mint_cleanup_test.sh
       - name: Self-name pass keeps issue references, provenance and detectors
         run: bash tests/workflows/self_name_pass_test.sh
+      # repo-init is carried into children unchanged, so it must find the deed
+      # it is renaming rather than name one template's. This is the control for
+      # the second-generation mint (measured on lintel, 2026-10-19).
+      - name: Repo deed lookup and rename controls
+        run: bash tests/workflows/deed_rename_test.sh
       # The automated mint path (RSR_NON_INTERACTIVE) never completed, and no
       # workflow exercised repo-init at all: tests/e2e runs nowhere in CI.
       - name: Install verified just 1.43.0

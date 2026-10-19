@@ -37,6 +37,45 @@ repo-init archetype="":
         fi
     }
 
+    # --- The template's own identity ---------------------------------------
+    # repo-init is carried into every minted repo UNCHANGED (the self-name pass
+    # skips this file on purpose: it is the generator, not generated content),
+    # so it cannot assume it is running in rsr-template-repo. By the second
+    # generation the deed on disk is <parent>_chora.deed, the literal to
+    # rewrite is <parent>, and the provenance parent is <parent-owner>/<parent>.
+    # Hardcoding the original template instead made every mint from a minted
+    # repo rename nothing, rewrite nothing, and then abort at the identity step
+    # because ${REPO}_chora.deed was never created. Measured on
+    # metadatastician/lintel 2026-10-19: docs/architecture/REPOSITORY-MAP.adoc
+    # claimed repo-init renamed lintel_chora.deed at mint, and it did not.
+    #
+    # Derived, never asked: these are facts about the checkout, not choices.
+    # The root Justfile comes first because its OWNER/REPO lines are also the
+    # literals written through the tree, so those are exactly what the rewrite
+    # has to match (and they survive in a tarball). The git remote is second:
+    # it is the name GitHub resolves when the Justfile has been edited, and a
+    # fork's remote is a weaker claim than the tree's own declaration. The
+    # original template is last, so a bare export still mints something valid.
+    TEMPLATE_OWNER=""
+    TEMPLATE_REPO=""
+    if [ -f Justfile ]; then
+        TEMPLATE_REPO="$(sed -n -E 's/^REPO[[:space:]]*:=[[:space:]]*"([^"]+)".*/\1/p' Justfile | head -1)"
+        TEMPLATE_OWNER="$(sed -n -E 's/^OWNER[[:space:]]*:=[[:space:]]*"([^"]+)".*/\1/p' Justfile | head -1)"
+    fi
+    if [ -z "$TEMPLATE_REPO" ] || [ -z "$TEMPLATE_OWNER" ]; then
+        _origin="$(git config --get remote.origin.url 2>/dev/null || true)"
+        if [ -n "$_origin" ]; then
+            _origin="${_origin%.git}"
+            _origin="${_origin%/}"
+            [ -n "$TEMPLATE_REPO" ] || TEMPLATE_REPO="${_origin##*[/:]}"
+            _origin="${_origin%/*}"
+            [ -n "$TEMPLATE_OWNER" ] || TEMPLATE_OWNER="${_origin##*[/:]}"
+        fi
+    fi
+    TEMPLATE_REPO="${TEMPLATE_REPO:-rsr-template-repo}"
+    TEMPLATE_OWNER="${TEMPLATE_OWNER:-hyperpolymath}"
+    TEMPLATE_SLUG="${TEMPLATE_OWNER}/${TEMPLATE_REPO}"
+
     echo "═══════════════════════════════════════════════════"
     echo "  RSR Project Bootstrap"
     echo "═══════════════════════════════════════════════════"
@@ -418,10 +457,13 @@ repo-init archetype="":
         fi
     done
 
-    # Also replace [YOUR-REPO-NAME] and [YOUR-NAME/ORG] in the repo deed
-    # (the family-7 allocation manifest folded into it — standards#837 pilot).
-    sed -i "s|\[YOUR-REPO-NAME\]|${PROJECT_NAME}|g" rsr-template-repo_chora.deed 2>/dev/null || true
-    sed -i "s|\[YOUR-NAME/ORG\]|${OWNER}|g" rsr-template-repo_chora.deed 2>/dev/null || true
+    # [YOUR-REPO-NAME] and [YOUR-NAME/ORG] (the family-7 allocation manifest
+    # folded into the deed — standards#837 pilot) were replaced by the loop
+    # above, which walks every text file and does not exclude the deed. Two
+    # more seds naming rsr-template-repo_chora.deed here were redundant AND
+    # wrong: in a minted repo the deed is <parent>_chora.deed, so they silently
+    # no-opped (2>/dev/null || true) and hid the fact that the filename was
+    # never discovered. One pass, one place, no hardcoded filename.
 
     # --- Instruction-block pass --------------------------------------------
     # Delete the "TEMPLATE INSTRUCTIONS (delete this block before publishing)"
@@ -490,9 +532,13 @@ repo-init archetype="":
     # such references (`resource-algebra#209` for the deed-clause migration)
     # after its mint on 2026-10-14. tests/workflows/self_name_pass_test.sh
     # runs these two lines on fixtures.
-    if [ "$REPO" != "rsr-template-repo" ]; then
+    if [ "$REPO" != "$TEMPLATE_REPO" ]; then
         SELF_PROV='instantiated-from|parent|upstream|chain =|lineage|minted from|created from|Template: |reject-if-contains'
-        SELF_NAME_SED="/${SELF_PROV}/!{s|rsr-template-repo#([0-9])|__RSR_TEMPLATE_ISSUE__\\1|g;s|hyperpolymath/rsr-template-repo|${OWNER}/${REPO}|g;s|rsr-template-repo|${REPO}|g;s|__RSR_TEMPLATE_ISSUE__|rsr-template-repo#|g;}"
+        # The template's name and slug are LITERAL text, not patterns: a Julia
+        # mint's parent may be <Name>.jl, and `.` in a sed pattern matches any
+        # character. Escaped inline so the test below can evaluate this one
+        # assignment, as the recipe defines it.
+        SELF_NAME_SED="/${SELF_PROV}/!{s|${TEMPLATE_REPO//./\\.}#([0-9])|__TEMPLATE_ISSUE__\\1|g;s|${TEMPLATE_SLUG//./\\.}|${OWNER}/${REPO}|g;s|${TEMPLATE_REPO//./\\.}|${REPO}|g;s|__TEMPLATE_ISSUE__|${TEMPLATE_REPO}#|g;}"
         find . -type f \
             -not -path './.git/*' \
             -not -path './build/just/repo-init.just' \
@@ -503,12 +549,12 @@ repo-init archetype="":
             -not -name '*.png' -not -name '*.jpg' -not -name '*.gif' \
             -not -name '*.woff' -not -name '*.woff2' \
             | while read -r file; do
-            grep -q 'rsr-template-repo' "$file" 2>/dev/null || continue
+            grep -qF -- "$TEMPLATE_REPO" "$file" 2>/dev/null || continue
             file --brief "$file" | grep -qi 'text\|ascii\|utf' || continue
             # sed -i preserves the mode bit; rewriting via a temp file would not.
             sed -i -E "$SELF_NAME_SED" "$file"
         done
-        echo "  self-name: rewrote template literal -> ${REPO} (provenance lines preserved)"
+        echo "  self-name: rewrote ${TEMPLATE_REPO} -> ${REPO} (provenance lines preserved)"
 
         # The repo deed's FILENAME carries the repo slug (deed dispatch:
         # <stem>_chora.deed — deed.abnf v1.0.0). The self-name pass rewrote
@@ -516,10 +562,14 @@ repo-init archetype="":
         # mint runs before the new repo's first commit. Renames (not tokens)
         # are how filenames change — a {{REPO}} token in a FILENAME is the
         # brace-collapse hazard class repo-init has already been burnt by.
-        if [ -f rsr-template-repo_chora.deed ]; then
-            mv rsr-template-repo_chora.deed "${REPO}_chora.deed"
-            echo "  repo deed: renamed rsr-template-repo_chora.deed -> ${REPO}_chora.deed"
-        fi
+        #
+        # The deed is found by its SHAPE, not by the original template's name:
+        # a repo minted from a minted repo already carries <parent>_chora.deed,
+        # and naming rsr-template-repo here renamed nothing (then the identity
+        # step aborted on the missing <child>_chora.deed). scripts/repo-deed.sh
+        # owns that lookup so it can be tested without running a whole mint.
+        _deed_out="$(bash scripts/repo-deed.sh rename . "$REPO")"
+        echo "  repo deed: ${_deed_out} (deed filename carries the repo slug)"
 
         # ── self-OWNER pass ──────────────────────────────────────────────────
         #
@@ -551,7 +601,7 @@ repo-init archetype="":
     echo ""
     echo "── Identity (repo deed) ─────────────────────────"
 
-    # Write THIS repo's identity into its deed, replacing rsr-template-repo's own.
+    # Write THIS repo's identity into its deed, replacing the template's own.
     #
     # The template ships its REAL identity — clade rm, the canonical-name
     # rsr-template-repo, a production maturity, its own ecosystem relations —
@@ -570,8 +620,10 @@ repo-init archetype="":
     #   DERIVABLE -> computed, never guessed  (uuid name, owner, canonical-name)
     #   JUDGEMENT -> left UNASSIGNED, fails loudly until a human chooses (clade)
     ID_IN="build/templates/identity.deed.in"
-    DEED="${REPO}_chora.deed"
-    [ -f "$DEED" ] || DEED="rsr-template-repo_chora.deed"
+    # The rename above names the deed after the child. Ask for whatever one
+    # deed is actually present rather than for a hardcoded template name: a
+    # no-op rename (already correct) or an exported tree must still mint.
+    DEED="$(bash scripts/repo-deed.sh find . 2>/dev/null || true)"
     if [ -f "$ID_IN" ] && [ -f "$DEED" ]; then
         if [ "$(grep -c '^  ; >>> repo-identity' "$DEED")" != 1 ] \
            || [ "$(grep -c '^  ; <<< repo-identity' "$DEED")" != 1 ]; then
@@ -712,7 +764,7 @@ repo-init archetype="":
     # answer-file's whole purpose. Remote lookup remains only as a fallback,
     # and the symref form also recovers the source BRANCH, which was never
     # recorded at all (#203).
-    PARENT_SLUG="hyperpolymath/rsr-template-repo"
+    PARENT_SLUG="$TEMPLATE_SLUG"
     PARENT_BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || true)
     PARENT_PIN=$(git rev-parse --verify -q HEAD 2>/dev/null || true)
     PARENT_TREE=$(git rev-parse --verify -q 'HEAD^{tree}' 2>/dev/null || true)

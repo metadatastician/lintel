@@ -104,7 +104,10 @@ jobs:
       - name: Check for Duplicate Workflows
         run: |
           echo "=== Checking for Duplicates ==="
-          # Known duplicate patterns
+          # Known duplicate patterns. This repo has neither CodeQL workflow:
+          # it runs GitHub's DEFAULT setup, and an advanced configuration's
+          # SARIF is rejected while that is enabled. The check stays for repos
+          # that do carry an advanced configuration.
           if [ -f .github/workflows/codeql.yml ] && [ -f .github/workflows/codeql-analysis.yml ]; then
             echo "ERROR: Duplicate CodeQL workflows found"
             echo "Delete codeql-analysis.yml (keep codeql.yml)"
@@ -120,7 +123,8 @@ jobs:
         run: |
           echo "=== Checking CodeQL Configuration ==="
           if [ ! -f .github/workflows/codeql.yml ]; then
-            echo "No CodeQL workflow found (optional)"
+            echo "No advanced CodeQL workflow found (expected: CodeQL default setup is enabled in repo settings)"
+            echo "Re-adding codeql.yml requires disabling default setup first, or its SARIF upload fails unconditionally."
             exit 0
           fi
 

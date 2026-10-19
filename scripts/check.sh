@@ -43,11 +43,64 @@ fi
 flags=(--safe --without-K --no-libraries --ignore-interfaces --double-check -W error -i src -i "$st")
 
 # 1. Coverage: a module that Lintel.All does not import is never checked.
+# Strip nested Agda comments once, before looking for active imports.
+#
+# A character literal is recognised only at a token boundary: Agda names may
+# contain apostrophes and most non-whitespace Unicode characters
+# (agda.readthedocs.io, Lexical structure), so in `import Lintel.FooΔ'X'` the
+# quoted run is part of the module name, not a literal. Stripping it would
+# rewrite a real import into `import Lintel.FooΔ` and report the module
+# uncovered. `prev` is the last character emitted as code; an empty `prev`
+# is the start of the line, and a space is what a stripped comment, string or
+# literal leaves behind, so both count as boundaries, as do Agda special
+# symbols: .;{}()@".
+imports="$(awk '
+  {
+    code = ""
+    prev = ""
+    for (i = 1; i <= length($0); i++) {
+      c = substr($0, i, 1); pair = substr($0, i, 2)
+      if (depth) {
+        if (pair == "{-") { depth++; i++ }
+        else if (pair == "-}") { depth--; i++ }
+      } else if (quoted) {
+        if (c == "\\") i++
+        else if (c == "\"") quoted = 0
+      } else if (pair == "--") {
+        break
+      } else if (pair == "{-") {
+        depth++; i++; code = code " "; prev = " "
+      } else if (c == "\"") {
+        quoted = 1; code = code " "; prev = " "
+      } else if (c == "\047" && (prev == "" || prev ~ /[[:space:].;{}()@"]/) &&
+                 match(substr($0, i), /^\047([^\047\\]|\\.)\047/)) {
+        i += RLENGTH - 1; code = code " "; prev = " "
+      } else {
+        code = code c; prev = c
+      }
+    }
+    print code
+  }
+' src/Lintel/All.agda)"
 missing=0
 while IFS= read -r file; do
   module="${file#src/}"; module="${module%.agda}"; module="${module//\//.}"
   [ "$module" = Lintel.All ] && continue
-  if ! grep -qE "^import ${module//./\\.}\$" src/Lintel/All.agda; then
+  # The module name is literal text, not a regular expression.  Agda names may
+  # carry `.`, `+`, `*`, `(`, `|` and friends, and only `.` was escaped, so
+  # `Lintel.Operator+'X'` never matched itself: `Operator+` reads as "Operato,
+  # then one or more r".  Compare literally instead of building a pattern — the
+  # only regular expression left is the `import` keyword and its separator.
+  if ! awk -v mod="$module" '
+        {
+          line = $0
+          sub(/^[[:space:]]+/, "", line)
+          if (line !~ /^import[[:space:]]+/) next
+          sub(/^import[[:space:]]+/, "", line)
+          sub(/[[:space:]]+$/, "", line)
+          if (line == mod) found = 1
+        }
+        END { exit found ? 0 : 1 }' <<< "$imports"; then
     echo "ERROR: $module is not imported by src/Lintel/All.agda" >&2
     missing=1
   fi
