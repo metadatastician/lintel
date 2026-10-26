@@ -16,13 +16,13 @@
 --
 -- Every pair of labels has a join and a meet, so this is a lattice (reader
 -- sets over three roles: eight labels), not a poset completed by hand.  The
--- laws are proved here as lemmas.  They become the fields of secret-types'
--- Lattice record once that record exists upstream (LNT-01 step 2,
--- hyperpolymath/secret-types#9); no second definition of the record is made
+-- laws are proved here as lemmas; Lintel.Instance packs them into
+-- secret-types' Lattice record (SecretTypes.Lattice.Record,
+-- hyperpolymath/secret-types#9).  No second definition of the record is made
 -- here.
 --
 -- Pins:
---   hyperpolymath/secret-types   833715c98eb9728979d31be9c71f81fdb986bd3b
+--   hyperpolymath/secret-types   ccdcb3ec42792337a9ab6047e1f99de9d20a4f96
 --     SecretTypes.Prelude, imported (scripts/fetch-siblings.sh)
 --   hyperpolymath/proven-servers b58289e7862139efd918561a7ddc9cb5605ea9d8
 --     protocols/proven-odns/src/ODNS/Types.idr, Role = Client | Proxy | Target;
@@ -215,8 +215,10 @@ no-one-⋢-anyone : ¬ (no-one ⊑ anyone)
 no-one-⋢-anyone (flows () _ _)
 
 ----------------------------------------------------------------------
--- The laws secret-types' TINI proof uses for its two-point lattice
--- (PROOF-STATUS N-6), stated for this one: L becomes anyone, H no-one.
+-- The two-point laws secret-types' TINI proof used before its census
+-- (the 2026-10-12 reading of PROOF-STATUS N-6), stated for this one: L
+-- becomes anyone, H no-one.  The certified census (N-6 since ccdcb3e) needs
+-- only ⊔-upper₁, ⊔-upper₂ and ⊑-trans above; these stay as facts.
 
 -- L ⊔ y = y
 anyone-⊔ : ∀ ℓ → anyone ⊔ ℓ ≡ ℓ
@@ -243,11 +245,7 @@ no-one-⊔ _ = refl
 ... | refl | refl | refl = refl
 
 ----------------------------------------------------------------------
--- Decidable flow
-
-data Dec (P : Set) : Set where
-  yes : P → Dec P
-  no  : ¬ P → Dec P
+-- Decidable flow (Dec from SecretTypes.Prelude)
 
 _⊒?_ : ∀ a b → Dec (a ⊒ b)
 true  ⊒? _     = yes ⊒-true

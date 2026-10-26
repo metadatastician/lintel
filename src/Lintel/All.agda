@@ -5,3 +5,4 @@
 -- fails if a module under src/Lintel is not imported here.
 module Lintel.All where
 import Lintel.Lattice
+import Lintel.Instance

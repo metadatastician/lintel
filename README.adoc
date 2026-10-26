@@ -98,8 +98,8 @@ client's address (client and proxy) combined with the query name (client and
 target) is the client's alone. The guarantee being built is secret-types'
 termination-insensitive noninterference (TINI) at this lattice, with one
 observer per role: two finishing runs that agree on what a role may observe end
-up agreeing on it. Until that instance typechecks, the claim that self-defeating
-privacy compositions cannot be built holds for labels, not yet for programs.
+up agreeing on it. That instance typechecks (L-6); the claim that self-defeating
+privacy compositions cannot be built still holds for labels, not yet for programs.
 
 [cols="1,4,1,4",options="header"]
 |===
@@ -116,9 +116,9 @@ privacy compositions cannot be built holds for labels, not yet for programs.
 | `⊑-readers`, `readers-⊑`, `observes-flow`, `flow-observes`
 
 | L-3
-| The laws secret-types' TINI uses for its two-point lattice hold here.
+| The laws secret-types' generic TINI needs hold here: `⊔-upper₁`, `⊔-upper₂` and `⊑-trans` (secret-types N-6, the certified census). The two-point laws of N-6's earlier reading hold too.
 | PROVEN
-| `⊔-anyone₁`/`₂` (⊔-L₁/₂), `no-one-⊔` (H ⊔ y = H), `anyone-⊔` (L ⊔ y = y)
+| `⊔-upper₁`/`₂`, `⊑-trans`, packed as `Lintel.Instance.reader-sets`; earlier reading: `⊔-anyone₁`/`₂` (⊔-L₁/₂), `no-one-⊔` (H ⊔ y = H), `anyone-⊔` (L ⊔ y = y)
 
 | L-4
 | Address and query name each reach their own role. Composed, only the client may observe them.
@@ -131,9 +131,9 @@ privacy compositions cannot be built holds for labels, not yet for programs.
 | `tests/reject/LinkToProxy.agda`, `tests/reject/LinkToTarget.agda`, `tests/accept/LinkToClient.agda`, run by `scripts/check.sh` with a negative control
 
 | L-6
-| `tini` holds at this lattice for each role's observer: secret-types' N-1 statement, with low-equivalence read at that observer.
-| OPEN
-| Waits on the parametric `Lattice` record, link:https://github.com/hyperpolymath/secret-types/issues/9[secret-types#9]. Lintel then instantiates it at a pinned commit.
+| `tini` holds at this lattice, with `lo` the address and `hi` the query name, for each role's observer: secret-types' N-7 statement, agreement read at that observer.
+| PROVEN
+| `src/Lintel/Instance.agda`: `reader-sets` (an instance of secret-types' `Lattice` record, link:https://github.com/hyperpolymath/secret-types/issues/9[secret-types#9]), `field-label`, `tini-per-role`
 
 | L-7
 | Self-defeating privacy compositions cannot be built (programs, not just labels).
@@ -147,10 +147,10 @@ privacy compositions cannot be built holds for labels, not yet for programs.
 |===
 
 The `Lattice` record is defined once, in secret-types. Lintel proves the laws and
-will supply the instance. `just proof-check-lintel` checks everything above (it
+supplies the instance. `just proof-check-lintel` checks everything above (it
 runs `scripts/fetch-siblings.sh` then `scripts/check.sh`), and so does the
 `Agda proofs` workflow: Agda 2.6.4.3, `--safe --without-K --no-libraries
---double-check`, secret-types pinned at `833715c`.
+--double-check`, secret-types pinned at `ccdcb3e`.
 
 == Licence
 
