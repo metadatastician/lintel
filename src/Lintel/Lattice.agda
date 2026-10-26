@@ -263,8 +263,9 @@ _⊑?_ : ∀ ℓ ℓ' → Dec (ℓ ⊑ ℓ')
 -- Observers.  Role r's observation level is the label only r may observe;
 -- r sees a datum exactly when the datum may flow to that level.  This is
 -- the shape TINI's low observer takes at this lattice: one observer per
--- role.  A party holding two roles is not one of these observers;
--- non-collusion is assumed, as in proven-odns.
+-- role.  A party holding two roles is a coalition, not one of these
+-- observers: Lintel.Instance covers it for TINI, and shows why it still
+-- defeats the link.
 
 observer : Role → Label
 observer client = ⟨ true , false , false ⟩
