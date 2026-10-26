@@ -6,3 +6,4 @@
 module Lintel.All where
 import Lintel.Lattice
 import Lintel.Instance
+import Lintel.Composition

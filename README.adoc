@@ -95,11 +95,11 @@ The short version:
 Lintel labels each field with the set of oblivious-DNS roles (client, proxy,
 target) allowed to observe it. Combining fields intersects their readers, so the
 client's address (client and proxy) combined with the query name (client and
-target) is the client's alone. The guarantee being built is secret-types'
+target) is the client's alone. The guarantee is secret-types'
 termination-insensitive noninterference (TINI) at this lattice, with one
 observer per role: two finishing runs that agree on what a role may observe end
-up agreeing on it. That instance typechecks (L-6); the claim that self-defeating
-privacy compositions cannot be built still holds for labels, not yet for programs.
+up agreeing on it. It holds for programs over the two fields, not only for
+labels (L-6, L-7), under the non-collusion assumption A-1.
 
 [cols="1,4,1,4",options="header"]
 |===
@@ -136,9 +136,9 @@ privacy compositions cannot be built still holds for labels, not yet for program
 | `src/Lintel/Instance.agda`: `reader-sets` (an instance of secret-types' `Lattice` record, link:https://github.com/hyperpolymath/secret-types/issues/9[secret-types#9]), `field-label`, `tini-per-role`, `tini-coalition` (union observer `_∪_`)
 
 | L-7
-| Self-defeating privacy compositions cannot be built (programs, not just labels).
-| DESIGNED
-| Follows from L-5 and L-6 once L-6 is PROVEN.
+| Self-defeating privacy compositions cannot be built as programs. A typed command writes a value depending on both fields, through its expression or through the guards around it, only into a variable that the client alone may read. Lintel's two fields include no such variable, so no typed command writes the link at all.
+| PROVEN
+| `src/Lintel/Composition.agda`: `writes-flow`, `link-written-to-client` (any labelling), `no-link-written` (Lintel's fields); `tests/reject/ProgramLink.agda` (explicit), `tests/reject/ProgramLinkImplicit.agda` (implicit), with positive controls `tests/accept/ProgramField.agda` and `ProgramFieldGuarded.agda`
 
 | A-1
 | Non-collusion: no party holds both the proxy and the target role. TINI holds for coalitions too (L-6), but the confinement of the link (L-4, L-7) is per role: proxy and target together see the address and the query name, each by a permitted flow, and can join them outside any program.
