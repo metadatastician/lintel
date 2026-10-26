@@ -13,12 +13,13 @@
 # and record the new pin in the importing module headers.
 #
 #   secret-types  SecretTypes.Prelude (imported by Lintel.Lattice) and the
-#                 TINI development re-checked by scripts/check.sh; the
-#                 parametric Lattice record is not upstream yet
+#                 TINI development re-checked by scripts/check.sh;
+#                 SecretTypes.Lattice.Record and SecretTypes.Noninterference.Generic
+#                 (imported by Lintel.Instance)
 set -euo pipefail
 cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.."
 
-SECRET_TYPES_COMMIT="${SECRET_TYPES_COMMIT:-833715c98eb9728979d31be9c71f81fdb986bd3b}"
+SECRET_TYPES_COMMIT="${SECRET_TYPES_COMMIT:-ccdcb3ec42792337a9ab6047e1f99de9d20a4f96}"
 DEPENDENCIES_DIR="${DEPENDENCIES_DIR:-_build/dependencies}"
 
 # fetch_pinned <repo> <commit>
