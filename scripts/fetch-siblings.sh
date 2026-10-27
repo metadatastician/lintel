@@ -14,12 +14,13 @@
 #
 #   secret-types  SecretTypes.Prelude (imported by Lintel.Lattice) and the
 #                 TINI development re-checked by scripts/check.sh;
-#                 SecretTypes.Lattice.Record and SecretTypes.Noninterference.Generic
-#                 (imported by Lintel.Instance)
+#                 SecretTypes.Vars, SecretTypes.Lang, SecretTypes.Lattice.Record
+#                 and SecretTypes.Noninterference.Generic (imported by
+#                 Lintel.Instance); SecretTypes.Typing.Generic (Lintel.Composition)
 set -euo pipefail
 cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.."
 
-SECRET_TYPES_COMMIT="${SECRET_TYPES_COMMIT:-ccdcb3ec42792337a9ab6047e1f99de9d20a4f96}"
+SECRET_TYPES_COMMIT="${SECRET_TYPES_COMMIT:-ee01db4dc34e457cbc32cfb1b7abd737ea8f075a}"
 DEPENDENCIES_DIR="${DEPENDENCIES_DIR:-_build/dependencies}"
 
 # fetch_pinned <repo> <commit>

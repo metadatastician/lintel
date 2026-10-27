@@ -22,7 +22,7 @@
 -- here.
 --
 -- Pins:
---   hyperpolymath/secret-types   ccdcb3ec42792337a9ab6047e1f99de9d20a4f96
+--   hyperpolymath/secret-types   ee01db4dc34e457cbc32cfb1b7abd737ea8f075a
 --     SecretTypes.Prelude, imported (scripts/fetch-siblings.sh)
 --   hyperpolymath/proven-servers b58289e7862139efd918561a7ddc9cb5605ea9d8
 --     protocols/proven-odns/src/ODNS/Types.idr, Role = Client | Proxy | Target;

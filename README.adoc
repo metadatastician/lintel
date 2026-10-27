@@ -98,8 +98,9 @@ client's address (client and proxy) combined with the query name (client and
 target) is the client's alone. The guarantee is secret-types'
 termination-insensitive noninterference (TINI) at this lattice, with one
 observer per role: two finishing runs that agree on what a role may observe end
-up agreeing on it. It holds for programs over the two fields, not only for
-labels (L-6, L-7), under the non-collusion assumption A-1.
+up agreeing on it. It holds for programs over the two fields and the client's
+local state, not only for labels (L-6, L-7), under the non-collusion
+assumption A-1.
 
 [cols="1,4,1,4",options="header"]
 |===
@@ -131,26 +132,26 @@ labels (L-6, L-7), under the non-collusion assumption A-1.
 | `tests/reject/LinkToProxy.agda`, `tests/reject/LinkToTarget.agda`, `tests/accept/LinkToClient.agda`, run by `scripts/check.sh` with a negative control
 
 | L-6
-| `tini` holds at this lattice, with `lo` the address and `hi` the query name, for each role's observer and for any two roles observing together: secret-types' N-7 statement, agreement read at that observer.
+| `tini` holds at this lattice, over three variables: `addr` (the address), `qn` (the query name) and `local` (the client's local state, which the client alone reads), for each role's observer and for any two roles observing together: secret-types' N-7 statement, agreement read at that observer.
 | PROVEN
-| `src/Lintel/Instance.agda`: `reader-sets` (an instance of secret-types' `Lattice` record, link:https://github.com/hyperpolymath/secret-types/issues/9[secret-types#9]), `field-label`, `tini-per-role`, `tini-coalition` (union observer `_∪_`)
+| `src/Lintel/Instance.agda`: `reader-sets` (an instance of secret-types' `Lattice` record, link:https://github.com/hyperpolymath/secret-types/issues/9[secret-types#9]), `fields` (an instance of secret-types' `Vars` record), `field-label`, `tini-per-role`, `tini-coalition` (union observer `_∪_`)
 
 | L-7
-| Self-defeating privacy compositions cannot be built as programs. A typed command writes a value depending on both fields, through its expression or through the guards around it, only into a variable that the client alone may read. Lintel's two fields include no such variable, so no typed command writes the link at all. Scope: `link-written-to-client` holds for any labelling and is the informative half. With only the two fields as variables, their labels are incomparable, so no typed command moves information between them at all, and `no-link-written` is a corollary of that. The strengthening is n variables with a client-only sink, open upstream (secret-types PROOF-STATUS).
+| Self-defeating privacy compositions cannot be built as programs. A typed command writes a value depending on both fields, through its expression or through the guards around it, only into a variable that the client alone may read, for any variables and labelling. With Lintel's variables that is the client's local state alone, and a typed command can write the link there, so the refusal is of the destination, not of every composition.
 | PROVEN
-| `src/Lintel/Composition.agda`: `writes-flow`, `link-written-to-client` (any labelling), `no-link-written` (Lintel's fields); `tests/reject/ProgramLink.agda` (explicit), `tests/reject/ProgramLinkImplicit.agda` (implicit), with positive controls `tests/accept/ProgramField.agda` and `ProgramFieldGuarded.agda`
+| `src/Lintel/Composition.agda`: `writes-flow`, `link-written-to-client` (any variables and labelling), `link-written-to-local` and `link-writable` (Lintel's fields); `tests/reject/ProgramLink.agda` (explicit), `tests/reject/ProgramLinkImplicit.agda` (implicit), with positive controls `tests/accept/ProgramField.agda`, `ProgramFieldGuarded.agda` and `ProgramLinkLocal.agda` (the same sum as `ProgramLink`, written into `local`)
 
 | A-1
-| Non-collusion: no party holds both the proxy and the target role. TINI holds for coalitions too (L-6), but the confinement of the link (L-4, L-7) is per role: proxy and target together see the address and the query name, each by a permitted flow, and can join them outside any program. Note that `tini-coalition proxy target` says no more than that `exec` is deterministic: in the two-field fragment the coalition sees every variable, so agreeing stores are equal stores. Coalition TINI gains content only with a variable the coalition cannot see.
+| Non-collusion: no party holds both the proxy and the target role. TINI holds for coalitions too (L-6), but the confinement of the link (L-4, L-7) is per role: proxy and target together see the address and the query name, each by a permitted flow, and can join them outside any program. Coalition TINI is not determinism in disguise: the coalition does not see the client's local state, so it relates stores that differ there, and says their runs end agreeing on the address and the query name.
 | ASSUMED
-| Non-collusion, as in proven-servers `protocols/proven-odns` (`ODNS.Types.Role`); the gap is proved: `Lintel.Instance.collusion-gap`
+| Non-collusion, as in proven-servers `protocols/proven-odns` (`ODNS.Types.Role`); the gap is proved: `Lintel.Instance.collusion-gap`; coalition TINI's content: `coalition-blind`, with `coalition-agrees` and `stores-differ` (two such stores)
 |===
 
 The `Lattice` record is defined once, in secret-types. Lintel proves the laws and
 supplies the instance. `just proof-check-lintel` checks everything above (it
 runs `scripts/fetch-siblings.sh` then `scripts/check.sh`), and so does the
 `Agda proofs` workflow: Agda 2.6.4.3, `--safe --without-K --no-libraries
---double-check`, secret-types pinned at `ccdcb3e`.
+--double-check`, secret-types pinned at `ee01db4`.
 
 == Licence
 
