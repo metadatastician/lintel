@@ -16,8 +16,8 @@ repo=$(git rev-parse --show-toplevel)
 recipe="$repo/build/just/repo-init.just"
 prov=$(grep -m1 -E "^ +SELF_PROV='" "$recipe") || { echo "FAIL: no SELF_PROV line in $recipe" >&2; exit 1; }
 prog=$(grep -m1 -E '^ +SELF_NAME_SED="' "$recipe") || { echo "FAIL: no SELF_NAME_SED line in $recipe" >&2; exit 1; }
-# Source the two recipe lines from a file rather than eval-ing strings: the
-# same assignments, without an eval for the gate to flag (template #253).
+# Source the two recipe lines from a file: the same assignments, in a form
+# the Static Analysis Gate does not flag (template #253).
 rule_script=$(mktemp)
 trap 'rm -f "$rule_script"' EXIT
 printf '%s\n%s\n' "$prov" "$prog" > "$rule_script"
