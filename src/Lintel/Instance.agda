@@ -7,20 +7,24 @@
 --
 --   reader-sets      the instance: Lintel.Lattice's ⊑, ⊔, anyone and the
 --                    three laws the census needs (⊑-trans, ⊔-upper₁, ⊔-upper₂)
---   field-label      lo is the client's address, hi the query name
+--   fields           the variables: the address, the query name, and the
+--                    client's local state
+--   field-label      address, qname, and the client alone
 --   tini-per-role    TINI for each role's principal observer
 --   tini-coalition   TINI for any two roles observing together
 --   collusion-gap    why A-1 stays: a coalition of proxy and target sees each
 --                    field, though not their composition
+--   coalition-blind  ... nor the client's local state, so coalition TINI
+--                    relates stores that differ there
 --
--- Pin: hyperpolymath/secret-types ccdcb3ec42792337a9ab6047e1f99de9d20a4f96
---   SecretTypes.Lattice.Record, SecretTypes.Noninterference.Generic
---   (scripts/fetch-siblings.sh)
+-- Pin: hyperpolymath/secret-types ee01db4dc34e457cbc32cfb1b7abd737ea8f075a
+--   SecretTypes.Vars, SecretTypes.Lang, SecretTypes.Lattice.Record,
+--   SecretTypes.Noninterference.Generic (scripts/fetch-siblings.sh)
 module Lintel.Instance where
 
 open import SecretTypes.Prelude
+open import SecretTypes.Vars
 open import SecretTypes.Lattice.Record
-open import SecretTypes.Lang using (Var; lo; hi)
 open import Lintel.Lattice
 
 ----------------------------------------------------------------------
@@ -37,12 +41,38 @@ reader-sets = record
   ; ⊔-upper₂ = ⊔-upper₂
   }
 
--- The two variables of secret-types' fragment carry the two fields.
-field-label : Var → Label
-field-label lo = address
-field-label hi = qname
+----------------------------------------------------------------------
+-- The variables of a program handling one oblivious query: the client's
+-- address, the query name, and the client's local state, where the client
+-- may keep what only it may know.
 
-open import SecretTypes.Noninterference.Generic reader-sets field-label public
+data Field : Set where
+  addr qn local : Field
+
+infix 4 _≟f_
+-- Decide equality of fields.
+_≟f_ : (x y : Field) → Dec (x ≡ y)
+addr  ≟f addr  = yes refl
+addr  ≟f qn    = no λ ()
+addr  ≟f local = no λ ()
+qn    ≟f addr  = no λ ()
+qn    ≟f qn    = yes refl
+qn    ≟f local = no λ ()
+local ≟f addr  = no λ ()
+local ≟f qn    = no λ ()
+local ≟f local = yes refl
+
+fields : Vars
+fields = record { Var = Field ; _≟ᵥ_ = _≟f_ }
+
+open import SecretTypes.Lang fields public
+
+field-label : Field → Label
+field-label addr  = address
+field-label qn    = qname
+field-label local = observer client
+
+open import SecretTypes.Noninterference.Generic fields reader-sets field-label public
 
 ----------------------------------------------------------------------
 -- L-6: one principal observer per role.
@@ -94,3 +124,25 @@ collusion-gap = inj₁ address-to-proxy , inj₂ qname-to-target , λ
   proxy≢client ()
   target≢client : target ≢ client
   target≢client ()
+
+-- The composite label is the client's local state's label (link), so the
+-- coalition does not see that variable either.
+coalition-blind : ¬ Observer.sees (coalition proxy target) (field-label local)
+coalition-blind = snd (snd collusion-gap)
+
+-- So coalition TINI is not determinism in disguise: it relates two stores
+-- that differ in the client's local state, and says the runs end agreeing
+-- on the address and the query name whatever that state was.
+store₀ store₁ : Store
+store₀ _     = 0
+store₁ addr  = 0
+store₁ qn    = 0
+store₁ local = 1
+
+coalition-agrees : store₀ ≈[ Observer.sees (coalition proxy target) ] store₁
+coalition-agrees addr  _ = refl
+coalition-agrees qn    _ = refl
+coalition-agrees local v = ⊥-elim (coalition-blind v)
+
+stores-differ : read store₀ local ≢ read store₁ local
+stores-differ ()

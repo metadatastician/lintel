@@ -14,21 +14,26 @@
 --                            every enclosing guard
 --   writes-flow              in a typed command, the counter and k both flow
 --                            to x
---   link-written-to-client   for any labelling of the variables: the link is
+--   link-written-to-client   for any variables and labelling: the link is
 --                            written only where the client alone may read it
---   no-link-written          for Lintel's fields: it is written nowhere
+--   link-written-to-local    for Lintel's fields: it is written only into the
+--                            client's local state
+--   link-writable            and it can be written there, so the refusal is
+--                            not a refusal of everything
 --
--- Pin: hyperpolymath/secret-types ccdcb3ec42792337a9ab6047e1f99de9d20a4f96
---   SecretTypes.Typing.Generic (scripts/fetch-siblings.sh)
+-- Pin: hyperpolymath/secret-types ee01db4dc34e457cbc32cfb1b7abd737ea8f075a
+--   SecretTypes.Vars, SecretTypes.Lang, SecretTypes.Typing.Generic
+--   (scripts/fetch-siblings.sh)
 module Lintel.Composition where
 
 open import SecretTypes.Prelude
-open import SecretTypes.Lang using (Var; lo; hi; Expr; Cmd; _≔_; _﹔_; ifz; while)
+open import SecretTypes.Vars
 open import Lintel.Lattice
-open import Lintel.Instance as I using (field-label)
+open import Lintel.Instance as I using (fields; field-label; addr; qn; local)
 
-module _ (label : Var → Label) where
-  open import SecretTypes.Typing.Generic _⊑_ _⊔_ anyone label
+module _ (𝓥 : Vars) (label : Vars.Var 𝓥 → Label) where
+  open import SecretTypes.Lang 𝓥 using (Var; Expr; Cmd; _≔_; _﹔_; ifz; while)
+  open import SecretTypes.Typing.Generic 𝓥 _⊑_ _⊔_ anyone label
 
   -- Which data an assignment inside c depends on.  The guards an assignment
   -- sits under are joined into k, so implicit flows count as dependence.
@@ -60,18 +65,25 @@ module _ (label : Var → Label) where
   writes-flow {pc} (while {e = g} t) (body w) = under-guard pc g (writes-flow t w)
 
   -- A write that depends on both fields lands only where the client alone
-  -- may read it, whatever the labelling.
+  -- may read it, whatever the variables and their labelling.
   link-written-to-client : ∀ {pc c x k} r → pc ⊢ c → Writes x k c → address ⊔ qname ⊑ pc ⊔ k
                  → label x ⊑ observer r → r ≡ client
   link-written-to-client {pc} r t w h obs with writes-flow t w
   ... | p , q = link-confined r (⊑-trans h (⊑-trans (⊔-least p q) obs))
 
--- With Lintel's two fields as the variables, no variable is the client's
--- alone: the address is the proxy's too, the query name the target's.  So
--- no typed command writes the link anywhere.
-no-link-written : ∀ {pc c x k} → pc I.⊢ c → Writes field-label x k c
-                → address ⊔ qname ⊑ pc ⊔ k → ⊥
-no-link-written {x = lo} t w h with link-written-to-client field-label proxy t w h address-to-proxy
+-- With Lintel's fields as the variables, the address is the proxy's too and
+-- the query name the target's, so the link is written only into the
+-- client's local state.
+link-written-to-local : ∀ {pc c x k} → pc I.⊢ c → Writes fields field-label x k c
+                      → address ⊔ qname ⊑ pc ⊔ k → x ≡ local
+link-written-to-local {x = addr} t w h with link-written-to-client fields field-label proxy t w h address-to-proxy
 ... | ()
-no-link-written {x = hi} t w h with link-written-to-client field-label target t w h qname-to-target
+link-written-to-local {x = qn} t w h with link-written-to-client fields field-label target t w h qname-to-target
 ... | ()
+link-written-to-local {x = local} _ _ _ = refl
+
+-- The client may compose its own address and query name into its local
+-- state: a typed command that writes the link, so link-written-to-local is
+-- not vacuous.
+link-writable : Σ I.Cmd λ c → anyone I.⊢ c × Writes fields field-label local (address ⊔ qname) c
+link-writable = (local I.≔ I.plus (I.var addr) (I.var qn)) , (I.assign (flows ⊒-true ⊒-false ⊒-false) , here)

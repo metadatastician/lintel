@@ -2,7 +2,6 @@
 -- SPDX-License-Identifier: MPL-2.0
 -- SPDX-FileCopyrightText: 2026 Jonathan D.A. Jewell
 module ProgramLinkImplicit where
-open import SecretTypes.Lang using (lo; hi; var; skip; ifz; _≔_)
 open import Lintel.Lattice
 open import Lintel.Instance
 
@@ -12,5 +11,5 @@ open import Lintel.Instance
 -- qname ⊔ address, and the proxy bit fails as in ProgramLink.  The positive
 -- control is tests/accept/ProgramFieldGuarded.agda: guarded on the address
 -- itself, under the same witness.
-invalid : anyone ⊢ ifz (var hi) (lo ≔ var lo) skip
+invalid : anyone ⊢ ifz (var qn) (addr ≔ var addr) skip
 invalid = ifz (assign (flows ⊒-true ⊒-true ⊒-false)) skip
