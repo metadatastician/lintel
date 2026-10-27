@@ -632,6 +632,7 @@ jobs:
       - uses: actions/checkout@v7.0.1
         with:
           repository: hyperpolymath/hypatia
+          ref: be98f74ce93df200752f3798efa1305bfa3e0e10
           path: _hypatia
       - name: Setup Elixir for the oracle
         uses: erlef/setup-beam@v1.24.1
