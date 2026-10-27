@@ -136,12 +136,12 @@ labels (L-6, L-7), under the non-collusion assumption A-1.
 | `src/Lintel/Instance.agda`: `reader-sets` (an instance of secret-types' `Lattice` record, link:https://github.com/hyperpolymath/secret-types/issues/9[secret-types#9]), `field-label`, `tini-per-role`, `tini-coalition` (union observer `_∪_`)
 
 | L-7
-| Self-defeating privacy compositions cannot be built as programs. A typed command writes a value depending on both fields, through its expression or through the guards around it, only into a variable that the client alone may read. Lintel's two fields include no such variable, so no typed command writes the link at all.
+| Self-defeating privacy compositions cannot be built as programs. A typed command writes a value depending on both fields, through its expression or through the guards around it, only into a variable that the client alone may read. Lintel's two fields include no such variable, so no typed command writes the link at all. Scope: `link-written-to-client` holds for any labelling and is the informative half. With only the two fields as variables, their labels are incomparable, so no typed command moves information between them at all, and `no-link-written` is a corollary of that. The strengthening is n variables with a client-only sink, open upstream (secret-types PROOF-STATUS).
 | PROVEN
 | `src/Lintel/Composition.agda`: `writes-flow`, `link-written-to-client` (any labelling), `no-link-written` (Lintel's fields); `tests/reject/ProgramLink.agda` (explicit), `tests/reject/ProgramLinkImplicit.agda` (implicit), with positive controls `tests/accept/ProgramField.agda` and `ProgramFieldGuarded.agda`
 
 | A-1
-| Non-collusion: no party holds both the proxy and the target role. TINI holds for coalitions too (L-6), but the confinement of the link (L-4, L-7) is per role: proxy and target together see the address and the query name, each by a permitted flow, and can join them outside any program.
+| Non-collusion: no party holds both the proxy and the target role. TINI holds for coalitions too (L-6), but the confinement of the link (L-4, L-7) is per role: proxy and target together see the address and the query name, each by a permitted flow, and can join them outside any program. Note that `tini-coalition proxy target` says no more than that `exec` is deterministic: in the two-field fragment the coalition sees every variable, so agreeing stores are equal stores. Coalition TINI gains content only with a variable the coalition cannot see.
 | ASSUMED
 | Non-collusion, as in proven-servers `protocols/proven-odns` (`ODNS.Types.Role`); the gap is proved: `Lintel.Instance.collusion-gap`
 |===
