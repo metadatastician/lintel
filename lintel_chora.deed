@@ -89,7 +89,7 @@
     :primary-name "Formal Verification & Proofs"
     :secondary (pt)
     :assigned "2026-10-14"
-    :rationale "Formal Verification & Proofs (`fv`): the core value is a proved privacy guarantee, the reader-set lattice now and secret-types' noninterference at that lattice next, which is the type family it instantiates (epistemic-types, echo-types and proven-servers are fv). Secondary Protocols & Interop (`pt`): its subject is the oblivious-DNS protocol's roles. Owner decision 2026-10-14.")
+    :rationale "Formal Verification & Proofs (`fv`): the core value is a proved privacy guarantee, the reader-set lattice and secret-types' noninterference instantiated at it (README L-1 to L-7), which is the type family it instantiates (epistemic-types, echo-types and proven-servers are fv). Secondary Protocols & Interop (`pt`): its subject is the oblivious-DNS protocol's roles. Owner decision 2026-10-14.")
   (forges
     :github "metadatastician/lintel")
   ; :type is one of standalone monorepo monorepo-child inflated deflated hub
