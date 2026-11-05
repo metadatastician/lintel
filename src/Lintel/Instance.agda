@@ -17,7 +17,7 @@
 --   coalition-blind  ... nor the client's local state, so coalition TINI
 --                    relates stores that differ there
 --
--- Pin: hyperpolymath/secret-types ee01db4dc34e457cbc32cfb1b7abd737ea8f075a
+-- Pin: hyperpolymath/secret-types d1d843b9ff878c8b5a819ee18ef9f3ed9d27bdcc
 --   SecretTypes.Vars, SecretTypes.Lang, SecretTypes.Lattice.Record,
 --   SecretTypes.Noninterference.Generic (scripts/fetch-siblings.sh)
 module Lintel.Instance where
