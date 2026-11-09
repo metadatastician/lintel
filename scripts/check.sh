@@ -5,10 +5,12 @@
 # The Agda proof gate.  Pattern: choreographic-types / residual-evidence-types
 # scripts/check.sh.  Run scripts/fetch-siblings.sh first.
 #
-# Every check runs with --safe --without-K --no-libraries --ignore-interfaces
-# --double-check -W error: no library resolution (siblings come in as explicit
-# -i paths at their pins), no stale .agdai standing in for a proof, the kernel
-# re-verifies every term, and a warning is a failure.
+# Every check runs with the flags of scripts/proof-flags.sh: --safe --without-K
+# --cubical-compatible (the PROOF-POLICY §2.1 invocation) and --no-libraries
+# --ignore-interfaces --double-check -W error besides.  No library resolution
+# (siblings come in as explicit -i paths at their pins), no stale .agdai
+# standing in for a proof, the kernel re-verifies every term, and a warning is
+# a failure.
 #
 #   1. coverage: every module under src/Lintel is imported by Lintel.All
 #   2. the pinned sibling's development (SecretTypes.All, TINI included)
@@ -24,7 +26,8 @@ cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.."
 export LC_ALL="${LC_ALL:-C.UTF-8}"
 
 prover="${AGDA:-agda}"
-expected_version="${AGDA_VERSION:-2.6.4.3}"
+. scripts/proof-flags.sh
+expected_version="${AGDA_VERSION:-$(proof_agda_pin)}"
 deps="${DEPENDENCIES_DIR:-_build/dependencies}"
 st="${SECRET_TYPES_SRC:-$deps/secret-types/src}"
 
@@ -40,7 +43,8 @@ if [ "$version" != "Agda version $expected_version" ]; then
   exit 1
 fi
 
-flags=(--safe --without-K --no-libraries --ignore-interfaces --double-check -W error -i src -i "$st")
+mapfile -t flags < <(proof_flags)
+flags+=(-i src -i "$st")
 
 # 1. Coverage: a module that Lintel.All does not import is never checked.
 # Strip nested Agda comments once, before looking for active imports.

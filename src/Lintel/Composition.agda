@@ -21,7 +21,7 @@
 --   link-writable            and it can be written there, so the refusal is
 --                            not a refusal of everything
 --
--- Pin: hyperpolymath/secret-types d1d843b9ff878c8b5a819ee18ef9f3ed9d27bdcc
+-- Pin: hyperpolymath/secret-types 2f342bced31234e03dbbb6379c8eace11c39ee35
 --   SecretTypes.Vars, SecretTypes.Lang, SecretTypes.Typing.Generic
 --   (scripts/fetch-siblings.sh)
 module Lintel.Composition where
@@ -29,10 +29,10 @@ module Lintel.Composition where
 open import SecretTypes.Prelude
 open import SecretTypes.Vars
 open import Lintel.Lattice
-open import Lintel.Instance as I using (fields; field-label; addr; qn; local)
+open import Lintel.Instance as I using (fields; field-label; addr; qn; local; _⊎_; inj₁; inj₂)
 
 module _ (𝓥 : Vars) (label : Vars.Var 𝓥 → Label) where
-  open import SecretTypes.Lang 𝓥 using (Var; Expr; Cmd; _≔_; _﹔_; ifz; while)
+  open import SecretTypes.Lang 𝓥 using (Var; Expr; Cmd; skip; _≔_; _﹔_; ifz; while)
   open import SecretTypes.Typing.Generic 𝓥 _⊑_ _⊔_ anyone label
 
   -- Which data an assignment inside c depends on.  The guards an assignment
@@ -55,14 +55,43 @@ module _ (𝓥 : Vars) (label : Vars.Var 𝓥 → Label) where
   -- Every write in a typed command is a permitted flow: from the counter,
   -- and from everything the written value depends on.  The counter half is
   -- the induction hypothesis the guard cases need.
+  --
+  -- Proved through Writes′, the same relation computed by recursion on the
+  -- command.  Matching a typing derivation and a Writes derivation together
+  -- unifies two Cmd constructor terms, which needs constructor injectivity
+  -- and is refused under `--cubical-compatible` (PROOF-POLICY §2.1).  So
+  -- `computed` reads a Writes derivation into Writes′, matching only the
+  -- derivation (its Cmd index is a variable), and writes-flow′ matches only
+  -- the typing derivation, after which Writes′ reduces.  Writes, the
+  -- relation the theorems below are stated over, is unchanged.
+  private
+    Writes′ : Var → Label → Cmd → Set
+    Writes′ x k skip          = ⊥
+    Writes′ x k (y ≔ e)       = (x ≡ y) × (k ≡ lab e)
+    Writes′ x k (c₁ ﹔ c₂)     = Writes′ x k c₁ ⊎ Writes′ x k c₂
+    Writes′ x k (ifz g c₁ c₂) = Σ Label λ k′ → (k ≡ lab g ⊔ k′) × (Writes′ x k′ c₁ ⊎ Writes′ x k′ c₂)
+    Writes′ x k (while g c)   = Σ Label λ k′ → (k ≡ lab g ⊔ k′) × Writes′ x k′ c
+
+    computed : ∀ {x k c} → Writes x k c → Writes′ x k c
+    computed here     = refl , refl
+    computed (seq₁ w) = inj₁ (computed w)
+    computed (seq₂ w) = inj₂ (computed w)
+    computed (ifz₁ w) = _ , (refl , inj₁ (computed w))
+    computed (ifz₂ w) = _ , (refl , inj₂ (computed w))
+    computed (body w) = _ , (refl , computed w)
+
+    writes-flow′ : ∀ {pc c x k} → pc ⊢ c → Writes′ x k c → pc ⊑ label x × k ⊑ label x
+    writes-flow′ skip ()
+    writes-flow′ {pc} (assign {e = e} ok) (refl , refl) =
+      ⊑-trans (⊔-upper₁ pc (lab e)) ok , ⊑-trans (⊔-upper₂ pc (lab e)) ok
+    writes-flow′ (seq t₁ _) (inj₁ w) = writes-flow′ t₁ w
+    writes-flow′ (seq _ t₂) (inj₂ w) = writes-flow′ t₂ w
+    writes-flow′ {pc} (ifz {e = g} t₁ _) (_ , (refl , inj₁ w)) = under-guard pc g (writes-flow′ t₁ w)
+    writes-flow′ {pc} (ifz {e = g} _ t₂) (_ , (refl , inj₂ w)) = under-guard pc g (writes-flow′ t₂ w)
+    writes-flow′ {pc} (while {e = g} t) (_ , (refl , w)) = under-guard pc g (writes-flow′ t w)
+
   writes-flow : ∀ {pc c x k} → pc ⊢ c → Writes x k c → pc ⊑ label x × k ⊑ label x
-  writes-flow {pc} (assign {e = e} ok) here =
-    ⊑-trans (⊔-upper₁ pc (lab e)) ok , ⊑-trans (⊔-upper₂ pc (lab e)) ok
-  writes-flow (seq t₁ _) (seq₁ w) = writes-flow t₁ w
-  writes-flow (seq _ t₂) (seq₂ w) = writes-flow t₂ w
-  writes-flow {pc} (ifz {e = g} t₁ _) (ifz₁ w) = under-guard pc g (writes-flow t₁ w)
-  writes-flow {pc} (ifz {e = g} _ t₂) (ifz₂ w) = under-guard pc g (writes-flow t₂ w)
-  writes-flow {pc} (while {e = g} t) (body w) = under-guard pc g (writes-flow t w)
+  writes-flow t w = writes-flow′ t (computed w)
 
   -- A write that depends on both fields lands only where the client alone
   -- may read it, whatever the variables and their labelling.
