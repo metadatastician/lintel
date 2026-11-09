@@ -22,7 +22,7 @@
 -- here.
 --
 -- Pins:
---   hyperpolymath/secret-types   d1d843b9ff878c8b5a819ee18ef9f3ed9d27bdcc
+--   hyperpolymath/secret-types   b64974cad9dced8f8a95d3961685e5110ceb06f0
 --     SecretTypes.Prelude, imported (scripts/fetch-siblings.sh)
 --   hyperpolymath/proven-servers b58289e7862139efd918561a7ddc9cb5605ea9d8
 --     protocols/proven-odns/src/ODNS/Types.idr, Role = Client | Proxy | Target;
@@ -59,10 +59,21 @@ no-one = ⟨ false , false , false ⟩
 -- Flow, one bit at a time
 
 -- a ⊒ b: every reader b admits, a admits too (b implies a).
+-- The bits are parameters, not indices, and each case carries its equations:
+-- no proof ever has to match on the injectivity of `false`, so every lemma
+-- below also computes under cubical transports (--cubical-compatible gives
+-- no UnsupportedIndexedMatch). The pattern synonyms keep the familiar names
+-- for building and matching witnesses.
 infix 4 _⊒_
-data _⊒_ : Bool → Bool → Set where
-  ⊒-true  : ∀ {b} → true ⊒ b
-  ⊒-false : false ⊒ false
+data _⊒_ (a b : Bool) : Set where
+  ⊒-yes : a ≡ true → a ⊒ b
+  ⊒-no  : a ≡ false → b ≡ false → a ⊒ b
+
+pattern ⊒-true  = ⊒-yes refl
+pattern ⊒-false = ⊒-no refl refl
+
+false≢true : false ≢ true
+false≢true ()
 
 infix 4 _⊑_
 record _⊑_ (ℓ ℓ' : Label) : Set where
@@ -95,12 +106,14 @@ _⊔_ _⊓_ : Label → Label → Label
 ⊒-refl false = ⊒-false
 
 ⊒-trans : ∀ {a b c} → a ⊒ b → b ⊒ c → a ⊒ c
-⊒-trans ⊒-true  _       = ⊒-true
-⊒-trans ⊒-false ⊒-false = ⊒-false
+⊒-trans (⊒-yes p)  _          = ⊒-yes p
+⊒-trans (⊒-no _ q) (⊒-yes r)  = ⊥-elim (false≢true (trans (sym q) r))
+⊒-trans (⊒-no p _) (⊒-no _ s) = ⊒-no p s
 
 ⊒-antisym : ∀ {a b} → a ⊒ b → b ⊒ a → a ≡ b
-⊒-antisym ⊒-true  ⊒-true  = refl
-⊒-antisym ⊒-false ⊒-false = refl
+⊒-antisym (⊒-yes p)  (⊒-yes q)  = trans p (sym q)
+⊒-antisym (⊒-yes p)  (⊒-no _ r) = ⊥-elim (false≢true (trans (sym r) p))
+⊒-antisym (⊒-no p q) _          = trans p (sym q)
 
 -- Every bit admits at least what a closed bit admits.
 ⊒-closed : ∀ b → b ⊒ false
@@ -116,8 +129,8 @@ _⊔_ _⊓_ : Label → Label → Label
 ∧-right false b = ⊒-closed b
 
 ∧-greatest : ∀ {a b c} → a ⊒ c → b ⊒ c → a ∧ b ⊒ c
-∧-greatest ⊒-true  q = q
-∧-greatest ⊒-false _ = ⊒-false
+∧-greatest {b = b} {c} (⊒-yes p) q = subst (λ x → x ∧ b ⊒ c) (sym p) q
+∧-greatest {b = b} (⊒-no p q) _ = ⊒-no (cong (λ x → x ∧ b) p) q
 
 ∨-left : ∀ a b → a ∨ b ⊒ a
 ∨-left true  _ = ⊒-true
@@ -128,8 +141,9 @@ _⊔_ _⊓_ : Label → Label → Label
 ∨-right false b = ⊒-refl b
 
 ∨-least : ∀ {a b c} → c ⊒ a → c ⊒ b → c ⊒ a ∨ b
-∨-least ⊒-true  _       = ⊒-true
-∨-least ⊒-false ⊒-false = ⊒-false
+∨-least (⊒-yes p)  _          = ⊒-yes p
+∨-least (⊒-no p _) (⊒-yes r)  = ⊥-elim (false≢true (trans (sym p) r))
+∨-least (⊒-no p q) (⊒-no _ s) = ⊒-no p (cong₂ _∨_ q s)
 
 ∧-true₁ : ∀ a b → a ∧ b ≡ true → a ≡ true
 ∧-true₁ true  _ _ = refl
@@ -155,8 +169,8 @@ _⊔_ _⊓_ : Label → Label → Label
 
 -- The bit encoding means exactly reverse inclusion of reader sets.
 ⊒-sound : ∀ {a b} → a ⊒ b → b ≡ true → a ≡ true
-⊒-sound ⊒-true  _ = refl
-⊒-sound ⊒-false ()
+⊒-sound (⊒-yes p)  _ = p
+⊒-sound (⊒-no _ q) e = ⊥-elim (false≢true (trans (sym q) e))
 
 ⊒-complete : ∀ a b → (b ≡ true → a ≡ true) → a ⊒ b
 ⊒-complete true  _     _ = ⊒-true
@@ -212,7 +226,8 @@ no-one-greatest ℓ = flows (⊒-closed (by-client ℓ)) (⊒-closed (by-proxy �
 
 -- The top never flows down (⊤ ⋢ ⊥).
 no-one-⋢-anyone : ¬ (no-one ⊑ anyone)
-no-one-⋢-anyone (flows () _ _)
+no-one-⋢-anyone (flows (⊒-yes ()) _ _)
+no-one-⋢-anyone (flows (⊒-no _ ()) _ _)
 
 ----------------------------------------------------------------------
 -- The two-point laws secret-types' TINI proof used before its census
@@ -250,7 +265,7 @@ no-one-⊔ _ = refl
 _⊒?_ : ∀ a b → Dec (a ⊒ b)
 true  ⊒? _     = yes ⊒-true
 false ⊒? false = yes ⊒-false
-false ⊒? true  = no λ ()
+false ⊒? true  = no λ { (⊒-yes ()) ; (⊒-no _ ()) }
 
 _⊑?_ : ∀ ℓ ℓ' → Dec (ℓ ⊑ ℓ')
 ℓ ⊑? ℓ' with by-client ℓ ⊒? by-client ℓ' | by-proxy ℓ ⊒? by-proxy ℓ' | by-target ℓ ⊒? by-target ℓ'
@@ -308,5 +323,7 @@ link-to-client = flows ⊒-true ⊒-false ⊒-false
 -- No role but the client may observe the composition.
 link-confined : ∀ r → address ⊔ qname ⊑ observer r → r ≡ client
 link-confined client _ = refl
-link-confined proxy  (flows _ () _)
-link-confined target (flows _ _ ())
+link-confined proxy  (flows _ (⊒-yes ()) _)
+link-confined proxy  (flows _ (⊒-no _ ()) _)
+link-confined target (flows _ _ (⊒-yes ()))
+link-confined target (flows _ _ (⊒-no _ ()))

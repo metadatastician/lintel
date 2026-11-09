@@ -150,8 +150,10 @@ assumption A-1.
 The `Lattice` record is defined once, in secret-types. Lintel proves the laws and
 supplies the instance. `just proof-check-lintel` checks everything above (it
 runs `scripts/fetch-siblings.sh` then `scripts/check.sh`), and so does the
-`Agda proofs` workflow: Agda 2.6.4.3, `--safe --without-K --no-libraries
---double-check`, secret-types pinned at `d1d843b`.
+`Agda proofs` workflow: Agda 2.6.4.3, `--safe --without-K --cubical-compatible
+--no-libraries --ignore-interfaces --double-check -W error` (PROOF-POLICY §2.1's
+canonical invocation, plus four stricter options), secret-types pinned at
+`b64974c`.
 
 == Licence
 

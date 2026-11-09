@@ -21,7 +21,7 @@
 --   link-writable            and it can be written there, so the refusal is
 --                            not a refusal of everything
 --
--- Pin: hyperpolymath/secret-types d1d843b9ff878c8b5a819ee18ef9f3ed9d27bdcc
+-- Pin: hyperpolymath/secret-types b64974cad9dced8f8a95d3961685e5110ceb06f0
 --   SecretTypes.Vars, SecretTypes.Lang, SecretTypes.Typing.Generic
 --   (scripts/fetch-siblings.sh)
 module Lintel.Composition where
@@ -32,7 +32,7 @@ open import Lintel.Lattice
 open import Lintel.Instance as I using (fields; field-label; addr; qn; local)
 
 module _ (𝓥 : Vars) (label : Vars.Var 𝓥 → Label) where
-  open import SecretTypes.Lang 𝓥 using (Var; Expr; Cmd; _≔_; _﹔_; ifz; while)
+  open import SecretTypes.Lang 𝓥 using (Var; Expr; Cmd; skip; _≔_; _﹔_; ifz; while)
   open import SecretTypes.Typing.Generic 𝓥 _⊑_ _⊔_ anyone label
 
   -- Which data an assignment inside c depends on.  The guards an assignment
@@ -52,17 +52,35 @@ module _ (𝓥 : Vars) (label : Vars.Var 𝓥 → Label) where
     under-guard pc g (p , q) =
       ⊑-trans (⊔-upper₁ pc (lab g)) p , ⊔-least (⊑-trans (⊔-upper₂ pc (lab g)) p) q
 
+  -- What a typing derivation says about each command form, computed from the
+  -- command. `inv` matches the derivation against a command that is still a
+  -- variable, so no clause relies on the injectivity of a Cmd constructor;
+  -- writes-flow then matches Writes alone (cubical-compatible, PROOF-POLICY §2.1).
+  Inv : Label → Cmd → Set
+  Inv pc skip          = ⊤
+  Inv pc (x ≔ e)       = (pc ⊔ lab e) ⊑ label x
+  Inv pc (c₁ ﹔ c₂)    = pc ⊢ c₁ × pc ⊢ c₂
+  Inv pc (ifz e c₁ c₂) = (pc ⊔ lab e) ⊢ c₁ × (pc ⊔ lab e) ⊢ c₂
+  Inv pc (while e c)   = (pc ⊔ lab e) ⊢ c
+
+  inv : ∀ {pc c} → pc ⊢ c → Inv pc c
+  inv skip             = tt
+  inv (assign ok)      = ok
+  inv (seq t₁ t₂)      = t₁ , t₂
+  inv (ifz t₁ t₂)      = t₁ , t₂
+  inv (while t)        = t
+
   -- Every write in a typed command is a permitted flow: from the counter,
   -- and from everything the written value depends on.  The counter half is
   -- the induction hypothesis the guard cases need.
   writes-flow : ∀ {pc c x k} → pc ⊢ c → Writes x k c → pc ⊑ label x × k ⊑ label x
-  writes-flow {pc} (assign {e = e} ok) here =
-    ⊑-trans (⊔-upper₁ pc (lab e)) ok , ⊑-trans (⊔-upper₂ pc (lab e)) ok
-  writes-flow (seq t₁ _) (seq₁ w) = writes-flow t₁ w
-  writes-flow (seq _ t₂) (seq₂ w) = writes-flow t₂ w
-  writes-flow {pc} (ifz {e = g} t₁ _) (ifz₁ w) = under-guard pc g (writes-flow t₁ w)
-  writes-flow {pc} (ifz {e = g} _ t₂) (ifz₂ w) = under-guard pc g (writes-flow t₂ w)
-  writes-flow {pc} (while {e = g} t) (body w) = under-guard pc g (writes-flow t w)
+  writes-flow {pc} t (here {e = e}) =
+    ⊑-trans (⊔-upper₁ pc (lab e)) (inv t) , ⊑-trans (⊔-upper₂ pc (lab e)) (inv t)
+  writes-flow t (seq₁ w) = writes-flow (fst (inv t)) w
+  writes-flow t (seq₂ w) = writes-flow (snd (inv t)) w
+  writes-flow {pc} t (ifz₁ {g = g} w) = under-guard pc g (writes-flow (fst (inv t)) w)
+  writes-flow {pc} t (ifz₂ {g = g} w) = under-guard pc g (writes-flow (snd (inv t)) w)
+  writes-flow {pc} t (body {g = g} w) = under-guard pc g (writes-flow (inv t) w)
 
   -- A write that depends on both fields lands only where the client alone
   -- may read it, whatever the variables and their labelling.
