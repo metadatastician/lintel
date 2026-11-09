@@ -20,7 +20,7 @@
 set -euo pipefail
 cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.."
 
-SECRET_TYPES_COMMIT="${SECRET_TYPES_COMMIT:-d1d843b9ff878c8b5a819ee18ef9f3ed9d27bdcc}"
+SECRET_TYPES_COMMIT="${SECRET_TYPES_COMMIT:-2f342bced31234e03dbbb6379c8eace11c39ee35}"
 DEPENDENCIES_DIR="${DEPENDENCIES_DIR:-_build/dependencies}"
 
 # fetch_pinned <repo> <commit>

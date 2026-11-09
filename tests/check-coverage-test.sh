@@ -8,6 +8,7 @@ fixture="$(mktemp -d)"
 trap 'rm -rf "$fixture"' EXIT
 mkdir -p "$fixture/scripts" "$fixture/src/Lintel" "$fixture/sibling"
 cp "$root/scripts/check.sh" "$fixture/scripts/check.sh"
+cp "$root/scripts/proof-flags.sh" "$fixture/scripts/proof-flags.sh"
 touch "$fixture/src/Lintel/Lattice.agda"
 
 # Stop at the first proof invocation: these fixtures test coverage only.

@@ -49,3 +49,12 @@ jobs:
         run: bash scripts/fetch-siblings.sh
       - name: Proof gate
         run: bash scripts/check.sh
+      # The receipt names the gate, its flags, the claim PWGs and the hashed
+      # import cone (PROOF-POLICY §8). A committed receipt that no longer
+      # matches the tree fails here.
+      - name: Verification receipt matches the tree and the claim list
+        run: bash scripts/grade-receipt.sh --check
+      - name: Emit the receipt for this commit
+        run: |
+          bash scripts/grade-receipt.sh --write --commit "$(git rev-parse --short=12 HEAD)"
+          sed -n '1,40p' verification/receipts/agda-pwg_praxis.deed

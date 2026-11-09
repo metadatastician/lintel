@@ -22,7 +22,7 @@
 -- here.
 --
 -- Pins:
---   hyperpolymath/secret-types   d1d843b9ff878c8b5a819ee18ef9f3ed9d27bdcc
+--   hyperpolymath/secret-types   2f342bced31234e03dbbb6379c8eace11c39ee35
 --     SecretTypes.Prelude, imported (scripts/fetch-siblings.sh)
 --   hyperpolymath/proven-servers b58289e7862139efd918561a7ddc9cb5605ea9d8
 --     protocols/proven-odns/src/ODNS/Types.idr, Role = Client | Proxy | Target;
@@ -95,12 +95,20 @@ _⊔_ _⊓_ : Label → Label → Label
 ⊒-refl false = ⊒-false
 
 ⊒-trans : ∀ {a b c} → a ⊒ b → b ⊒ c → a ⊒ c
-⊒-trans ⊒-true  _       = ⊒-true
-⊒-trans ⊒-false ⊒-false = ⊒-false
+⊒-trans ⊒-true  _ = ⊒-true
+⊒-trans ⊒-false q = q
+
+-- A bit that admits an open bit is open.  Matching the proof fixes its first
+-- index (a variable here), so no constructor injectivity is needed; the
+-- lemmas below go through this rather than matching a second proof whose
+-- indices are already fixed, which `--cubical-compatible` refuses
+-- (PROOF-POLICY §2.1).
+⊒-open : ∀ {a} → a ⊒ true → a ≡ true
+⊒-open ⊒-true = refl
 
 ⊒-antisym : ∀ {a b} → a ⊒ b → b ⊒ a → a ≡ b
-⊒-antisym ⊒-true  ⊒-true  = refl
-⊒-antisym ⊒-false ⊒-false = refl
+⊒-antisym ⊒-true  q = sym (⊒-open q)
+⊒-antisym ⊒-false _ = refl
 
 -- Every bit admits at least what a closed bit admits.
 ⊒-closed : ∀ b → b ⊒ false
@@ -128,8 +136,8 @@ _⊔_ _⊓_ : Label → Label → Label
 ∨-right false b = ⊒-refl b
 
 ∨-least : ∀ {a b c} → c ⊒ a → c ⊒ b → c ⊒ a ∨ b
-∨-least ⊒-true  _       = ⊒-true
-∨-least ⊒-false ⊒-false = ⊒-false
+∨-least ⊒-true  _ = ⊒-true
+∨-least ⊒-false q = q
 
 ∧-true₁ : ∀ a b → a ∧ b ≡ true → a ≡ true
 ∧-true₁ true  _ _ = refl

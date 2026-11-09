@@ -53,14 +53,20 @@ These proofs come from the lintel and MUST be present in every repo:
 
 == Project-Specific Proofs
 
-// Fill in proofs specific to this project. Copy from PROOF-REQUIREMENTS-MASTER.adoc
-// Delete this section for T4/T5 repos
+The proofs Lintel itself owes. Statements are the README claim table; grades and
+legs are link:PROOF-STATUS.adoc[`PROOF-STATUS.adoc`]. Theory goes to Agda and is
+rechecked in Rocq and in Lean, with no Mathlib (`standards/3-practice/PROOF-POLICY.adoc`
+§1–§2, which governs over the prover guide below).
 
 [cols="1,3,1,1,1,2", options="header"]
 |===
 | # | Proof Needed | Category | Prover | Priority | File(s)
 
-| | | | | |
+| L-1 to L-4 | The reader-set lattice: laws, reverse inclusion, the link's confinement | DOM | Agda (done, `PWG-3`) | — | `src/Lintel/Lattice.agda`
+| L-6 | TINI at this lattice, per role and per coalition | SEC | Agda (done, `PWG-3`) | — | `src/Lintel/Instance.agda`
+| L-7 | Self-defeating compositions cannot be built as programs | SEC | Agda (done, `PWG-3`) | — | `src/Lintel/Composition.agda`
+| R-1 | Rocq leg for L-1 to L-4, L-6, L-7 (§2) | DOM/SEC | Rocq | P2 | not started
+| R-2 | Lean leg for L-1 to L-4, L-6, L-7 (§2), no Mathlib | DOM/SEC | Lean | P2 | not started
 |===
 
 == Dangerous Patterns (BANNED)
