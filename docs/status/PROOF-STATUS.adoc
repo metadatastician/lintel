@@ -25,7 +25,7 @@ sibling, under the flags of `scripts/proof-flags.sh`:
 flags. `scripts/check.sh` checks, in order:
 
 . coverage: every module under `src/Lintel` is imported by `Lintel.All`;
-. the sibling at its pin, `hyperpolymath/secret-types` `2f342bc`, all of
+. the sibling at its pin, `hyperpolymath/secret-types` `45046c2`, all of
   `SecretTypes.All` under the same flags;
 . `Lintel.All`;
 . the 5 positive controls under `tests/accept`;
@@ -45,23 +45,37 @@ what happens without it.
 |===
 | Claim | Token | PWG | Rocq leg | Lean leg | Note
 
-| L-1 | proven | `PWG-3` | unavailable | unavailable | `Lintel.Lattice`
-| L-2 | proven | `PWG-3` | unavailable | unavailable | `Lintel.Lattice`
-| L-3 | proven | `PWG-3` | unavailable | unavailable | `Lintel.Lattice`, packed as `Lintel.Instance.reader-sets`
-| L-4 | proven | `PWG-3` | unavailable | unavailable | `Lintel.Lattice`
+| L-1 | proven | `PWG-2ii` | re-proved | re-proved | `Lintel.Lattice`
+| L-2 | proven | `PWG-2ii` | re-proved | re-proved | `Lintel.Lattice`
+| L-3 | proven | `PWG-2ii` | re-proved | re-proved | `Lintel.Lattice`, packed as `Lintel.Instance.reader-sets`
+| L-4 | proven | `PWG-2ii` | re-proved | re-proved | `Lintel.Lattice`
 | L-5 | tested-only | n/a | n/a | n/a | Checked refusals and acceptances; not a theorem (§8.1)
-| L-6 | proven | `PWG-3` | unavailable | unavailable | `Lintel.Instance`; rests on secret-types N-7, itself `PWG-3`
-| L-7 | proven | `PWG-3` | unavailable | unavailable | `Lintel.Composition`
+| L-6 | proven | `PWG-2ii` | re-proved | re-proved | `Lintel.Instance`; rests on secret-types N-7, itself `PWG-2ii` at the pin
+| L-7 | proven | `PWG-2ii` | re-proved | re-proved | `Lintel.Composition`
 | A-1 | argued | n/a | n/a | n/a | An assumption; its gap is proved (`collusion-gap`)
 |===
 
-`foundation_diverse` is false for every row: no witness outside Agda exists.
+`foundation_diverse` is false for every row: Agda, Rocq and Lean are all
+dependent type theories (§8.3).
 
-*Why not higher.* `PWG-2i` needs one of the §2 legs (Rocq or Lean) to count:
-kernel-accepted and `RECONCILED` against the Agda statement. Neither exists.
-`unavailable` is the opening state, stated: no Agda→Dedukti transport has been
-attempted and no hand re-proof exists. `PWG-3` is not a discharge (§8.4): each
-`PWG-3` row still owes both legs.
+*The legs.* Both are hand re-proofs (`re-proved`): Agda2Dedukti is an Agda
+backend pinned to a fork of Agda and cannot run on 2.6.4.3, and there is no
+released Dedukti or Lambdapi exporter to Lean 4. They are built on
+secret-types' own legs at the same pin, as the Agda is built on secret-types'
+Agda: the record, the language, the typing rules and TINI are imported, never
+restated. Each leg is kernel-checked with no axioms: `Print Assumptions` and
+`#print axioms` report none for all 36 statements, transitively.
+`bash scripts/check-legs.sh` checks both, and CI runs it as the `legs` job.
+The §2.2 record, with the statement comparison, versions, invocations and
+universe discipline, is
+link:../../verification/legs/README.adoc[`verification/legs/README.adoc`]. Every
+row is `RECONCILED`. Claude Code wrote the comparison, and it is provisional
+until the owner reviews it (estate doctrine 4).
+
+*Why not higher.* `PWG-1` needs a receipt per witness and per commit that
+records each checker's observed result (§8.2). The receipt records each leg's
+pinned checker, invocation and input digests, the sibling's leg files
+included, but not the result. The CI log of the `legs` job is the result.
 
 *The template skeletons are not the legs.* `verification/proofs/{agda,coq,lean4,idris2,tlaplus}`
 are RSR template boilerplate. They prove nothing about Lintel, and no workflow
@@ -76,15 +90,16 @@ derivation and the `Writes` derivation together on one `Cmd` index. It now reads
 `Writes` into `Writes′`, the same relation computed by recursion on the command,
 and recurses on the typing derivation alone. `Writes`, the relation L-7 is stated
 over, is unchanged, as is every statement. The sibling needed the matching change,
-hyperpolymath/secret-types#26 (`just-injective`), which is why the pin is that
-branch's commit until it merges.
+hyperpolymath/secret-types#26 (`just-injective`). That, and secret-types' legs
+(hyperpolymath/secret-types#29, stacked on #26), are why the pin is a branch
+commit, `45046c2`, until they merge.
 
 == Open
 
-* The Rocq and Lean legs for L-1 to L-4, L-6 and L-7 (§2): transport through
-  Dedukti first, re-proof by hand without Mathlib as the fallback, each with a
-  §2.2 correspondence record.
-* Re-pin secret-types to its `main` once hyperpolymath/secret-types#26 merges.
-  The squash commit will differ from `2f342bc`.
+* Owner review of the legs' statement comparison
+  (link:../../verification/legs/README.adoc[`verification/legs/README.adoc`]).
+* Re-pin secret-types to its `main` once hyperpolymath/secret-types#26 and
+  hyperpolymath/secret-types#29 (its legs) merge. The squash commits will differ
+  from `45046c2`.
 * A-1 stays an assumption by design: confinement of the link is per role, and a
   proxy–target coalition can join the two fields outside any program.

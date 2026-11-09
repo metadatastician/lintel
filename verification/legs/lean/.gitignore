@@ -1,0 +1,4 @@
+# SPDX-License-Identifier: MPL-2.0
+.lake/
+# Written by `lake build`; not JCS-serialised (estate JSON policy), not committed.
+lake-manifest.json

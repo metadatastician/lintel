@@ -1,0 +1,219 @@
+// SPDX-License-Identifier: CC-BY-SA-4.0
+// SPDX-FileCopyrightText: 2026 Jonathan D.A. Jewell
+= The Rocq and Lean recheck legs
+:revdate: 2026-11-09
+
+`standards/3-practice/PROOF-POLICY.adoc` §2 requires every Agda theory proof to
+be rechecked in Rocq and in Lean. Transport through Dedukti comes first, and a
+hand re-proof without Mathlib is the fallback. This directory holds both legs
+for L-1, L-2, L-3, L-4, L-6 and L-7, and this file is their §2.2
+correspondence record.
+
+`bash scripts/check-legs.sh` checks both, after `scripts/fetch-siblings.sh`. CI
+runs it as the `legs` job of `.github/workflows/proofs.yml`.
+
+== What the legs stand on
+
+The Agda modules import secret-types' `Lattice` record, its language, its
+typing rules and its TINI theorem. They do not restate them. The legs do the
+same: they import secret-types' own Rocq and Lean legs from the pinned checkout
+that the Agda gate also uses (`scripts/fetch-siblings.sh`). Those legs are
+described in secret-types' `verification/legs/README.adoc`, at the same pin,
+including how their record, `exec` and TINI correspond to secret-types' Agda.
+
+That import is the only dependency each leg has:
+
+* Lean: one `[[require]]`, a path to secret-types' Lean leg in the pinned
+  checkout. There is no Mathlib and no other package.
+* Rocq: `Require SecretTypesLeg.SecretTypes.` and its coercions. There is no
+  standard library.
+
+`check-legs.sh` refuses anything else.
+
+== Route: `re-proved`, and why not `transported`
+
+Transport is not available, for the reason secret-types records:
+
+* Agda2Dedukti is an Agda backend pinned to its own fork of Agda (commit
+  `b026db1`, GHC 8.10, Stackage LTS 18.21). It cannot run on Agda 2.6.4.3, the
+  version the gate pins.
+* There is no released exporter from Dedukti or Lambdapi to Lean 4, and no
+  released route to Rocq that this repository could pin and run in CI.
+
+So both legs restate each Agda statement and prove it by hand. The statements
+are compared below.
+
+== Versions and invocations
+
+[cols="1,2,3",options="header"]
+|===
+| Leg | Version | Invocation
+
+| Rocq
+| Coq 8.18.0 (Ubuntu 24.04 package `coq=8.18.0+dfsg-1build2`)
+| `coqc -q -Q <sibling>/rocq SecretTypesLeg SecretTypes.v` in the sibling's leg
+  directory, then `coqc -q -Q <sibling>/rocq SecretTypesLeg Lintel.v` in `rocq/`.
+  `<sibling>` is `_build/dependencies/secret-types/verification/legs`.
+
+| Lean
+| Lean 4.24.0 (release tarball, sha256
+  `b14f5e5159219dd1a1956c3b806813319f5e94ccd5bdfd56f54520609a5bb5ec`)
+| `lake build`, then `lake env lean Axioms.lean`, in `lean/`.
+|===
+
+== Assumptions: none
+
+36 statements are printed with their axioms in each leg (§8.4). Both commands
+are transitive, so the count covers secret-types' legs too:
+
+* Rocq: `Print Assumptions` reports `Closed under the global context` for all
+  36.
+* Lean: `#print axioms` reports `does not depend on any axioms` for all 36. In
+  particular, there is no `propext`, `Quot.sound` or `Classical.choice`.
+
+`check-legs.sh` fails unless every line says so.
+
+A-1, non-collusion, is a hypothesis of the threat model, not an axiom of any
+proof. It appears in neither leg, as in the Agda.
+
+== Universe discipline
+
+Agda's `Set` is `Type` in both legs. The following are all `Type`-valued in
+both, as in Agda, so a proof of each is data:
+
+* the bit order `_⊒_` (`Ge`);
+* the label order `_⊑_` (`Le`);
+* an observer's `sees`;
+* the `Writes` relation;
+* the typing derivations;
+* `Dec`.
+
+Equalities are `Prop` in the legs and sets in Agda. They are equalities of
+booleans, labels, roles, fields and naturals, which all have decidable
+equality, so the two readings hold the same information.
+
+== Statement correspondence
+
+Names follow the Agda where the syntax allows. Lean writes `₁` and `₂`, Rocq
+writes `1` and `2`. Hyphens become underscores, and `no-one` becomes `noOne` in
+Lean and `no_one` in Rocq. The points below are the ones on which the
+statements could differ; anything else is notation.
+
+`Label`:: A record of three booleans, `by-client`, `by-proxy` and `by-target`,
+with constructor `⟨_,_,_⟩`. In Lean it is a structure with constructor
+`⟨_, _, _⟩`; in Rocq it is `mkLabel`. `reads`, `anyone`, `no-one`, `observer`,
+`address` and `qname` are the same values.
+
+`_⊒_` and `_⊑_`:: `_⊒_` is the same inductive with the same two constructors
+(`⊒-true`/`⊒-false` in Agda, `tru`/`fls` in Lean, `ge_true`/`ge_false` in Rocq).
+`_⊑_` is a record of one `_⊒_` per role, with the same field names and the
+constructor `flows`.
+
+`_∧_`, `_∨_`, `_⊔_`, `_⊓_`:: `band` and `bor` are defined by the same clauses
+as Agda's `_∧_` and `_∨_` (match on the first argument), not by the prover's
+own boolean operations. So `join` and `meet` compute exactly as `_⊔_` and
+`_⊓_` do, and statements such as `link` hold by reduction in all three.
+
+`Dec`:: `SecretTypes.Prelude.Dec` is `Type`-valued, with `yes` carrying the
+proof. Lean's `Decidable` is for propositions only, and `_⊑_` is not one. So
+both legs define the same two-constructor `Dec` locally, and `_⊑?_` (`leDec`,
+`le_dec`) returns it. `_≟f_` decides an equality, a proposition, so it is
+`Decidable (x = y)` in Lean and `{x = y} + {x <> y}` in Rocq, as secret-types'
+legs take `Vars`.
+
+`reader-sets`:: The instance fills secret-types' `Lattice` with `_⊑_`, `_⊔_`,
+`anyone`, `⊑-trans`, `⊔-upper₁` and `⊔-upper₂`, as in Agda. Lean writes it as
+one structure, and Rocq builds the `Signature` (`reader_sig`) and then the
+`Lattice`. Secret-types' record split is described in its own record.
+
+`Field`:: `addr`, `qn` and `local`. `local` is a Lean keyword, so Lean writes
+`«local»`.
+
+`_⊎_` and `_∪_`:: Agda's `_⊎_` on `Set` is `Sum` in Lean and `sum` in Rocq.
+The union observer is the same, and so is its down-closure, by cases.
+
+`collusion-gap`:: Agda's `A × B × ¬ C` of `Set`s. Lean uses `PProd`, because
+`¬ C` is a proposition there and `Prod` takes types only. Rocq uses `prod`, as
+`Prop` sits inside `Type`.
+
+`writes-flow`:: The statement is the same. The Agda proof goes through
+`Writes′`, a private relation computed by recursion on the command, because
+matching a typing derivation and a `Writes` derivation together needs
+constructor injectivity, which `--cubical-compatible` refuses. Lean and Rocq
+have that injectivity. Lean matches the two derivations directly, and Rocq
+inverts the typing derivation, so neither leg needs `Writes′`. Nothing in any
+statement mentions `Writes′`.
+
+`link-writable`:: Agda's `Σ` is a `Sigma` type in Lean
+(`(c : Cmd fields) × …`) and `sigT` in Rocq. The witness is the same command,
+`local ≔ plus (var addr) (var qn)`, with the same typing proof.
+
+== Claim by claim
+
+Every row below is `RECONCILED` (§2.2). It is AGDA-VERIFIED by
+`scripts/check.sh`, COQ-CHECKED and LEAN-CHECKED by `scripts/check-legs.sh`,
+and its statements are compared above, with no bridge pending.
+
+[cols="1,3,3",options="header"]
+|===
+| Claim | Agda (`src/Lintel/…`) | Lean (`Lintel.…`) and Rocq
+
+| L-1
+| `⊑-refl`, `⊑-trans`, `⊑-antisym`, `⊔-upper₁`/`₂`, `⊔-least`,
+  `⊓-lower₁`/`₂`, `⊓-greatest`, `anyone-least`, `no-one-greatest`,
+  `no-one-⋢-anyone`, `_⊑?_`
+| `le_refl`, `le_trans`, `le_antisym`, `upper₁`/`₂` (`upper1`/`2`),
+  `join_least`, `meet_lower₁`/`₂`, `meet_greatest`, `anyone_least`,
+  `noOne_greatest` (`no_one_greatest`), `noOne_not_le_anyone`
+  (`no_one_not_le_anyone`), `leDec` (`le_dec`)
+
+| L-2
+| `⊑-readers`, `readers-⊑`, `observes-flow`, `flow-observes`
+| `le_readers`, `readers_le`, `observes_flow`, `flow_observes`
+
+| L-3
+| `reader-sets` (`⊑-trans`, `⊔-upper₁`, `⊔-upper₂`); earlier reading
+  `⊔-anyone₁`/`₂`, `no-one-⊔`, `anyone-⊔`
+| `readerSets` (`reader_sets`); `join_anyone₁`/`₂` (`join_anyone1`/`2`),
+  `noOne_join` (`no_one_join`), `anyone_join`
+
+| L-4
+| `address-to-proxy`, `qname-to-target`, `link`, `link-confined`
+| `address_to_proxy`, `qname_to_target`, `link`, `link_confined`
+
+| L-6
+| `tini-per-role`, `tini-coalition`, both instances of secret-types'
+  `Noninterference.Generic.tini`
+| `tini_per_role`, `tini_coalition`, both instances of secret-types' leg
+  theorem `tini`
+
+| L-7
+| `writes-flow`, `link-written-to-client`, `link-written-to-local`,
+  `link-writable`
+| `writes_flow`, `link_written_to_client`, `link_written_to_local`,
+  `link_writable`
+|===
+
+A-1 is an assumption, so it has no grade and no leg. The facts that make its
+gap precise are proved, though, and both legs recheck them as well:
+`collusion-gap`, `coalition-blind`, `coalition-agrees` and `stores-differ`
+(`collusion_gap`, `coalition_blind`, `coalition_agrees`, `stores_differ`).
+
+L-5 has no leg. It is the checked refusal of programs by the typechecker, not
+a theorem (§8.1).
+
+== What the legs do not establish
+
+* They are re-proofs, not transports. The match between each leg statement
+  and its Agda statement rests on the comparison above. Claude Code wrote it,
+  and it is provisional until the owner reviews it (estate doctrine 4). No tool
+  checks it.
+* L-6 rests on secret-types' legs of N-7, as the Agda rests on N-7. Their
+  grade bounds this one.
+* `foundation_diverse` (§8.3) stays false. Agda, Rocq and Lean are all
+  dependent type theories.
+* The grade is `PWG-2ii`, not `PWG-1`. `PWG-1` needs a receipt per witness,
+  per commit, recording the observed result of a pinned checker run on that
+  commit (§8.2). The receipt here records each leg's version, invocation and
+  input digests, the sibling's leg files included. The CI log of the `legs`
+  job is the observed result, and it is not yet captured as a receipt.

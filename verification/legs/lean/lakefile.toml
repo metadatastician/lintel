@@ -1,0 +1,15 @@
+# SPDX-License-Identifier: MPL-2.0
+# The Lean recheck leg of Lintel (PROOF-POLICY §2). Lean core only, no Mathlib.
+# The one dependency is secret-types' own Lean leg, at the pin
+# scripts/fetch-siblings.sh checks out, as the Agda gate takes secret-types'
+# Agda sources (-i) from the same checkout. scripts/check-legs.sh refuses any
+# other `require`.
+name = "lintel-lean-leg"
+defaultTargets = ["Lintel"]
+
+[[require]]
+name = "secret-types-lean-leg"
+path = "../../../_build/dependencies/secret-types/verification/legs/lean"
+
+[[lean_lib]]
+name = "Lintel"
