@@ -62,11 +62,11 @@ rechecked in Rocq and in Lean, with no Mathlib (`standards/3-practice/PROOF-POLI
 |===
 | # | Proof Needed | Category | Prover | Priority | File(s)
 
-| L-1 to L-4 | The reader-set lattice: laws, reverse inclusion, the link's confinement | DOM | Agda (done, `PWG-3`) | — | `src/Lintel/Lattice.agda`
-| L-6 | TINI at this lattice, per role and per coalition | SEC | Agda (done, `PWG-3`) | — | `src/Lintel/Instance.agda`
-| L-7 | Self-defeating compositions cannot be built as programs | SEC | Agda (done, `PWG-3`) | — | `src/Lintel/Composition.agda`
-| R-1 | Rocq leg for L-1 to L-4, L-6, L-7 (§2) | DOM/SEC | Rocq | P2 | not started
-| R-2 | Lean leg for L-1 to L-4, L-6, L-7 (§2), no Mathlib | DOM/SEC | Lean | P2 | not started
+| L-1 to L-4 | The reader-set lattice: laws, reverse inclusion, the link's confinement | DOM | Agda, Rocq, Lean (done, `PWG-2ii`) | — | `src/Lintel/Lattice.agda`
+| L-6 | TINI at this lattice, per role and per coalition | SEC | Agda, Rocq, Lean (done, `PWG-2ii`) | — | `src/Lintel/Instance.agda`
+| L-7 | Self-defeating compositions cannot be built as programs | SEC | Agda, Rocq, Lean (done, `PWG-2ii`) | — | `src/Lintel/Composition.agda`
+| R-1 | Rocq leg for L-1 to L-4, L-6, L-7 (§2) | DOM/SEC | Rocq | done | `verification/legs/rocq/Lintel.v`
+| R-2 | Lean leg for L-1 to L-4, L-6, L-7 (§2), no Mathlib | DOM/SEC | Lean | done | `verification/legs/lean/`
 |===
 
 == Dangerous Patterns (BANNED)

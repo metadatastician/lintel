@@ -45,6 +45,8 @@ jobs:
       # branch unnoticed.
       - name: Coverage gate self-test (must fail on drift)
         run: bash tests/check-coverage-test.sh
+      - name: Leg diagnostics and correspondence self-test
+        run: bash tests/legs-receipt-test.sh
       - name: Fetch siblings at their pinned commits
         run: bash scripts/fetch-siblings.sh
       - name: Proof gate
@@ -58,3 +60,39 @@ jobs:
         run: |
           bash scripts/grade-receipt.sh --write --commit "$(git rev-parse --short=12 HEAD)"
           sed -n '1,40p' verification/receipts/agda-pwg_praxis.deed
+  # The Rocq and Lean recheck legs (PROOF-POLICY §2), re-proved by hand on top
+  # of secret-types' own legs at the sibling pin (verification/legs/README.adoc
+  # gives the route and the statement correspondence). Both provers are pinned:
+  # Coq by its Ubuntu package version, Lean by its release tarball's sha256.
+  # Neither leg may depend on anything but secret-types' leg, nor rest on an
+  # axiom; scripts/check-legs.sh refuses either.
+  legs:
+    name: Rocq and Lean recheck legs (no axioms, no libraries)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Install the pinned Coq
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends -y coq=8.18.0+dfsg-1build2 zstd
+      - name: Install the pinned Lean (release tarball, sha256-checked)
+        env:
+          LEAN_URL: https://github.com/leanprover/lean4/releases/download/v4.24.0/lean-4.24.0-linux.tar.zst
+          LEAN_SHA256: b14f5e5159219dd1a1956c3b806813319f5e94ccd5bdfd56f54520609a5bb5ec
+        run: |
+          set -euo pipefail
+          curl --proto '=https' --proto-redir '=https' --tlsv1.2 -fsSL "$LEAN_URL" -o "$RUNNER_TEMP/lean.tar.zst"
+          echo "$LEAN_SHA256  $RUNNER_TEMP/lean.tar.zst" | sha256sum --check --strict
+          mkdir -p "$RUNNER_TEMP/lean"
+          tar --zstd -xf "$RUNNER_TEMP/lean.tar.zst" -C "$RUNNER_TEMP/lean"
+          echo "$RUNNER_TEMP/lean/lean-4.24.0-linux/bin" >> "$GITHUB_PATH"
+      - name: Checkout
+        uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+      - name: Leg diagnostics and correspondence self-test
+        run: bash tests/legs-receipt-test.sh
+      - name: Fetch siblings at their pinned commits
+        run: bash scripts/fetch-siblings.sh
+      - name: Both legs check, with no axioms
+        run: bash scripts/check-legs.sh

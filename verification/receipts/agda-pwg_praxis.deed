@@ -11,7 +11,7 @@
     :repository "metadatastician/lintel"
     :repo-uuid #u5"github.com/metadatastician/lintel"
     :kind "theory"
-    :source-commit "a0f2bae9cac0")
+    :source-commit "01bf2bf14192")
   (prover
     :tool "agda"
     :version "2.6.4.3"
@@ -37,27 +37,52 @@
     :axioms-assumed 0
     :assumption "A-1 non-collusion is a stated hypothesis of the threat model (argued), not an axiom of any proof")
   ; PWGs apply to theory theorems (PROOF-POLICY section 8.1); L-5 (refusal fixtures) and A-1 (an assumption) are n/a.
-  ; Independent Rocq and Lean legs remain unavailable: no transport or hand re-proof.
+  ; Rocq and Lean legs: re-proved by hand on top of secret-types' legs, RECONCILED in verification/legs/README.adoc.
+  (legs
+    :gate "bash scripts/check-legs.sh"
+    :ci ".github/workflows/proofs.yml (job legs)"
+    :correspondence "verification/legs/README.adoc"
+    :route "re-proved"
+    :route-reason "Agda2Dedukti is an Agda backend pinned to a fork (b026db1, GHC 8.10) and cannot run on Agda 2.6.4.3; no released Dedukti/Lambdapi exporter to Lean 4, and no pinned route to Rocq"
+    :state "RECONCILED"
+    :review "statement comparison written by Claude Code; provisional until owner review (estate doctrine 4)"
+    :depends-on "secret-types legs at the sibling pin (record, language, typing, TINI): imported, not restated"
+    (leg :prover "rocq" :checker "coqc" :version "8.18.0" :invocation "coqc -q -Q <sibling>/verification/legs/rocq SecretTypesLeg Lintel.v (in verification/legs/rocq)" :libraries "secret-types Rocq leg only (no standard library)" :axioms "none (Print Assumptions: Closed under the global context)")
+    (leg :prover "lean" :checker "lean" :version "4.24.0" :invocation "lake build; lake env lean Axioms.lean (in verification/legs/lean)" :libraries "secret-types Lean leg only (no Mathlib)" :axioms "none (#print axioms: does not depend on any axioms)")
+    (inputs
+      (input :path "verification/legs/rocq/Lintel.v" :sha256 "72fefcaa4af7facf71ebd7c9891fd55e1d388a51743f1ae3bf2e2bff1d4d218c")
+      (input :path "verification/legs/lean/Axioms.lean" :sha256 "fbc9517313f1d519b393b3af2dfaf23a3570b03d0d63eec672d12578d0d94cb6")
+      (input :path "verification/legs/lean/Lintel.lean" :sha256 "40ebf309ee76002da974837a9accfbe4de25d4e7faaa30305d33b01bafc93a9e")
+      (input :path "verification/legs/lean/Lintel/Composition.lean" :sha256 "03d3fe71419c3f0340c200454248301e990f9fc540e43798753eee42e93d196a")
+      (input :path "verification/legs/lean/Lintel/Instance.lean" :sha256 "643fd533fd646e5df59c72ab593d13b137ae233bcd1e98bf4e56462dd785c0e5")
+      (input :path "verification/legs/lean/Lintel/Lattice.lean" :sha256 "0b2134c82b60bd0f4332a432e8b1c0eff00c0cc55b2a1f6ebca5abb419503519")
+      (input :path "verification/legs/lean/lakefile.toml" :sha256 "9f3404bcc6575c35111450ac45e86bdac94ea7e034b05e4bc5e2032ca5392f8b")
+      (input :path "verification/legs/lean/lean-toolchain" :sha256 "387019dd5f6d8213249f99bfe1bd9f346678bf0d4612938c1e7feae386665335")
+      (input :repository "hyperpolymath/secret-types" :path "verification/legs/rocq/SecretTypes.v" :sha256 "acffaa9b4884b46c61fae6f2c91a34e7005b5d4b6158ebcc83bde25bc573b75e")
+      (input :repository "hyperpolymath/secret-types" :path "verification/legs/lean/SecretTypes/Generic.lean" :sha256 "13b10fd744828bc5ea3551346aeaa7795b51f24e8585e26c9dc737805c054cfa")
+      (input :repository "hyperpolymath/secret-types" :path "verification/legs/lean/lakefile.toml" :sha256 "75b8b79a27ec284d2c383302c88c90248ab56ee9902664068140d014b45bcf34")
+      (input :repository "hyperpolymath/secret-types" :path "verification/legs/lean/lean-toolchain" :sha256 "387019dd5f6d8213249f99bfe1bd9f346678bf0d4612938c1e7feae386665335")
+    ))
   (claims
-    (claim :id "L-1" :token "proven" :pwg "3" :coq-leg "unavailable" :lean-leg "unavailable")
-    (claim :id "L-2" :token "proven" :pwg "3" :coq-leg "unavailable" :lean-leg "unavailable")
-    (claim :id "L-3" :token "proven" :pwg "3" :coq-leg "unavailable" :lean-leg "unavailable")
-    (claim :id "L-4" :token "proven" :pwg "3" :coq-leg "unavailable" :lean-leg "unavailable")
+    (claim :id "L-1" :token "proven" :pwg "2ii" :coq-leg "re-proved" :lean-leg "re-proved")
+    (claim :id "L-2" :token "proven" :pwg "2ii" :coq-leg "re-proved" :lean-leg "re-proved")
+    (claim :id "L-3" :token "proven" :pwg "2ii" :coq-leg "re-proved" :lean-leg "re-proved")
+    (claim :id "L-4" :token "proven" :pwg "2ii" :coq-leg "re-proved" :lean-leg "re-proved")
     (claim :id "L-5" :token "tested-only" :pwg "n/a" :coq-leg "n/a" :lean-leg "n/a")
-    (claim :id "L-6" :token "proven" :pwg "3" :coq-leg "unavailable" :lean-leg "unavailable")
-    (claim :id "L-7" :token "proven" :pwg "3" :coq-leg "unavailable" :lean-leg "unavailable")
+    (claim :id "L-6" :token "proven" :pwg "2ii" :coq-leg "re-proved" :lean-leg "re-proved")
+    (claim :id "L-7" :token "proven" :pwg "2ii" :coq-leg "re-proved" :lean-leg "re-proved")
     (claim :id "A-1" :token "argued" :pwg "n/a" :coq-leg "n/a" :lean-leg "n/a")
   )
   ; The import cone: every module the proofs rest on, hashed.
   (modules
     (module :path "src/Lintel/All.agda" :sha256 "0d1e310a5ae125ce7aeaa72cfce69355c9f361cdbc1cf6dbb5a9c4e13f51cdfd")
-    (module :path "src/Lintel/Composition.agda" :sha256 "d9303df05a2dc647868689145128f00df88276a54d907eca68a1c6c487ecf86c")
-    (module :path "src/Lintel/Instance.agda" :sha256 "3b5830c6d800a1014171b3ed252df164f44157362d01de8709266beb30119326")
-    (module :path "src/Lintel/Lattice.agda" :sha256 "ed93ac720fcb8ac4d5d470fd605c2f53b20f156a9cf49bca852fa9f812cfb31d")
+    (module :path "src/Lintel/Composition.agda" :sha256 "4b4652780509ed2dbd26533b30ae0e4c99169b9bb258e22b9cf4acc2432cd8fc")
+    (module :path "src/Lintel/Instance.agda" :sha256 "6780327016175c6c1358bce0e58a5cf766b3632b4582988a59dc08f5339f014e")
+    (module :path "src/Lintel/Lattice.agda" :sha256 "abdf9416abc4abb8f5187167b508363e8fef7f81007dd803bc154fc2ee21704a")
   )
   (sibling
     :repository "hyperpolymath/secret-types"
-    :commit "2f342bced31234e03dbbb6379c8eace11c39ee35"
+    :commit "45046c2c0f92ddae2ff73c8c05555bed419f46ad"
     (module :path "src/SecretTypes/Lang.agda" :sha256 "957333acdcc5c67692630411cd7a82e96075f07533b0d2cc7c99d000b1522570")
     (module :path "src/SecretTypes/Lattice/Record.agda" :sha256 "25f4ee821b8e245dccb4f5f7eae9c3f1006a4b6eaeab3af14646721f14f83de3")
     (module :path "src/SecretTypes/Noninterference/Generic.agda" :sha256 "7c86fcc801e256a2c4869c5ccc8302a93daa0a882e2493056e68b329ff79602a")
