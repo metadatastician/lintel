@@ -45,6 +45,8 @@ jobs:
       # branch unnoticed.
       - name: Coverage gate self-test (must fail on drift)
         run: bash tests/check-coverage-test.sh
+      - name: Leg diagnostics and correspondence self-test
+        run: bash tests/legs-receipt-test.sh
       - name: Fetch siblings at their pinned commits
         run: bash scripts/fetch-siblings.sh
       - name: Proof gate
@@ -88,6 +90,8 @@ jobs:
         uses: actions/checkout@v7.0.1
         with:
           persist-credentials: false
+      - name: Leg diagnostics and correspondence self-test
+        run: bash tests/legs-receipt-test.sh
       - name: Fetch siblings at their pinned commits
         run: bash scripts/fetch-siblings.sh
       - name: Both legs check, with no axioms

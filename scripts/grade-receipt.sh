@@ -175,16 +175,25 @@ emit_legs() {
   printf '    ))\n'
 }
 
-# A leg counted for a claim must have a row in the correspondence record, and
+# Each counted leg must be RECONCILED in the correspondence record, and
 # the reverse: the grade is derived from the §2.2 record (PROOF-POLICY §8.4).
 # On a mismatch, report the differing claim IDs to stderr and exit the script
 # with status 1; matching records produce no output.
 check_leg_records() {
   local rec=verification/legs/README.adoc counted recorded
-  counted="$(claims | awk -F'|' '$4=="re-proved"||$5=="re-proved"{print $1}' | LC_ALL=C sort)"
-  recorded="$(grep -oE '^\| [LA]-[0-9]+$' "$rec" 2>/dev/null | tr -d '| ' | LC_ALL=C sort -u || true)"
+  counted="$(claims | awk -F'|' '
+    $4=="re-proved" || $4=="transported" {print $1 "|rocq|RECONCILED"}
+    $5=="re-proved" || $5=="transported" {print $1 "|lean|RECONCILED"}
+  ' | LC_ALL=C sort)"
+  recorded="$(awk -F'|' '
+    function trim(s) {gsub(/^[[:space:]]+|[[:space:]]+$/, "", s); return s}
+    /^\| [LA]-[0-9]+([[:space:]]|$)/ {
+      print trim($2) "|rocq|" trim($3)
+      print trim($2) "|lean|" trim($4)
+    }
+  ' "$rec" | LC_ALL=C sort)"
   if [[ "$counted" != "$recorded" ]]; then
-    echo "ERROR: claims with a counted leg differ from the rows of $rec" >&2
+    echo "ERROR: counted legs must match RECONCILED states in $rec" >&2
     diff <(printf '%s\n' "$recorded") <(printf '%s\n' "$counted") \
       | grep -E '^[<>]' | sed "s|^<|  only in $rec:|; s/^>/  only in grade-receipt.sh:/" >&2
     exit 1

@@ -154,11 +154,11 @@ Every row below is `RECONCILED` (§2.2). It is AGDA-VERIFIED by
 `scripts/check.sh`, COQ-CHECKED and LEAN-CHECKED by `scripts/check-legs.sh`,
 and its statements are compared above, with no bridge pending.
 
-[cols="1,3,3",options="header"]
+[cols="1,1,1,3,3",options="header"]
 |===
-| Claim | Agda (`src/Lintel/…`) | Lean (`Lintel.…`) and Rocq
+| Claim | Rocq state | Lean state | Agda (`src/Lintel/…`) | Lean (`Lintel.…`) and Rocq
 
-| L-1
+| L-1 | RECONCILED | RECONCILED
 | `⊑-refl`, `⊑-trans`, `⊑-antisym`, `⊔-upper₁`/`₂`, `⊔-least`,
   `⊓-lower₁`/`₂`, `⊓-greatest`, `anyone-least`, `no-one-greatest`,
   `no-one-⋢-anyone`, `_⊑?_`
@@ -167,27 +167,27 @@ and its statements are compared above, with no bridge pending.
   `noOne_greatest` (`no_one_greatest`), `noOne_not_le_anyone`
   (`no_one_not_le_anyone`), `leDec` (`le_dec`)
 
-| L-2
+| L-2 | RECONCILED | RECONCILED
 | `⊑-readers`, `readers-⊑`, `observes-flow`, `flow-observes`
 | `le_readers`, `readers_le`, `observes_flow`, `flow_observes`
 
-| L-3
+| L-3 | RECONCILED | RECONCILED
 | `reader-sets` (`⊑-trans`, `⊔-upper₁`, `⊔-upper₂`); earlier reading
   `⊔-anyone₁`/`₂`, `no-one-⊔`, `anyone-⊔`
 | `readerSets` (`reader_sets`); `join_anyone₁`/`₂` (`join_anyone1`/`2`),
   `noOne_join` (`no_one_join`), `anyone_join`
 
-| L-4
+| L-4 | RECONCILED | RECONCILED
 | `address-to-proxy`, `qname-to-target`, `link`, `link-confined`
 | `address_to_proxy`, `qname_to_target`, `link`, `link_confined`
 
-| L-6
+| L-6 | RECONCILED | RECONCILED
 | `tini-per-role`, `tini-coalition`, both instances of secret-types'
   `Noninterference.Generic.tini`
 | `tini_per_role`, `tini_coalition`, both instances of secret-types' leg
   theorem `tini`
 
-| L-7
+| L-7 | RECONCILED | RECONCILED
 | `writes-flow`, `link-written-to-client`, `link-written-to-local`,
   `link-writable`
 | `writes_flow`, `link_written_to_client`, `link_written_to_local`,

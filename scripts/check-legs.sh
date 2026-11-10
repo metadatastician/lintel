@@ -74,7 +74,9 @@ else
   echo "PASS: Rocq leg (Coq $COQ_VERSION), $n_print statements closed under the global context"
 fi
 
-lean_out="$(cd verification/legs/lean && lake build >/dev/null && lake env lean Axioms.lean 2>&1)" \
+lean_build_out="$(cd verification/legs/lean && lake build 2>&1)" \
+  || { echo "$lean_build_out" >&2; echo 'FAIL: the Lean leg does not build' >&2; exit 1; }
+lean_out="$(cd verification/legs/lean && lake env lean Axioms.lean 2>&1)" \
   || { echo "$lean_out" >&2; echo 'FAIL: the Lean leg does not check' >&2; exit 1; }
 n_free="$(grep -c 'does not depend on any axioms$' <<< "$lean_out" || true)"
 n_ax="$(grep -c '^#print axioms ' verification/legs/lean/Axioms.lean)"
