@@ -29,6 +29,7 @@ Inductive Role := client | proxy | target.
 
 Record Label := mkLabel { byClient : bool; byProxy : bool; byTarget : bool }.
 
+(** Return whether role [r] may observe data labeled [l]. *)
 Definition reads (l : Label) (r : Role) : bool :=
   match r with client => byClient l | proxy => byProxy l | target => byTarget l end.
 
@@ -55,9 +56,11 @@ Arguments at_target {l l'} _.
 Definition band (a b : bool) : bool := match a with true => b | false => false end.
 Definition bor (a b : bool) : bool := match a with true => true | false => b end.
 
+(** Label readable by exactly the roles admitted by both input labels. *)
 Definition join (l l' : Label) : Label :=
   mkLabel (band (byClient l) (byClient l')) (band (byProxy l) (byProxy l'))
           (band (byTarget l) (byTarget l')).
+(** Label readable by exactly the roles admitted by either input label. *)
 Definition meet (l l' : Label) : Label :=
   mkLabel (bor (byClient l) (byClient l')) (bor (byProxy l) (byProxy l'))
           (bor (byTarget l) (byTarget l')).
@@ -245,6 +248,8 @@ Definition ge_dec (a b : bool) : Dec (Ge a b) :=
   | false, true => no ge_false_true
   end.
 
+(** Decide whether data may flow from [l] to [l'] without adding readers.
+    Return [yes] with a flow witness or [no] with a refutation. *)
 Definition le_dec (l l' : Label) : Dec (Le l l') :=
   match ge_dec (byClient l) (byClient l'), ge_dec (byProxy l) (byProxy l'),
         ge_dec (byTarget l) (byTarget l') with
@@ -257,6 +262,7 @@ Definition le_dec (l l' : Label) : Dec (Le l l') :=
 (* ---------------------------------------------------------------------- *)
 (* L-2: observers                                                          *)
 
+(** Label readable by exactly role [r]. *)
 Definition observer (r : Role) : Label :=
   match r with
   | client => mkLabel true false false
@@ -338,6 +344,8 @@ Definition union {L : ST.Lattice} (V W : ST.Observer L) : ST.Observer L :=
                                | inr b => inr (ST.down W p b)
                                end |}.
 
+(** Observe labels visible to either role individually. Seeing separate
+    components does not itself grant visibility of their joined label. *)
 Definition coalition (r r' : Role) : ST.Observer reader_sets := union (role r) (role r').
 
 Theorem tini_coalition (r r' : Role) :

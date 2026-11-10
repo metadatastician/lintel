@@ -133,13 +133,14 @@ check_claim_ids() {
   fi
 }
 
-# The leg sources, in sorted order: Lintel's, then the sibling leg files they
-# import, read from the pinned checkout.
+# Print repository-relative Rocq sources, then Lean sources (excluding .lake),
+# each group sorted, followed by the Lean package and toolchain files.
 leg_sources() {
   find verification/legs/rocq -name '*.v' | LC_ALL=C sort
   find verification/legs/lean -name '*.lean' -not -path '*/.lake/*' | LC_ALL=C sort
   printf '%s\n' verification/legs/lean/lakefile.toml verification/legs/lean/lean-toolchain
 }
+# Print the fixed list of leg inputs relative to the secret-types checkout.
 sibling_leg_sources() {
   printf '%s\n' verification/legs/rocq/SecretTypes.v verification/legs/lean/SecretTypes/Generic.lean \
     verification/legs/lean/lakefile.toml verification/legs/lean/lean-toolchain
@@ -148,6 +149,8 @@ sibling_leg_sources() {
 # Print the (legs) block: per leg, the pinned checker, its invocation, the
 # axiom check, and the sha256 of every input, the sibling's leg files
 # included.  The pins are read from scripts/check-legs.sh, which the gate uses.
+# Write to stdout without running either checker. A missing sibling leg input
+# reports an error to stderr and returns 1; stdout may already contain output.
 emit_legs() {
   local coq lean sib="$deps/secret-types"
   coq="$(sed -n 's/^COQ_VERSION=\(.*\)$/\1/p' scripts/check-legs.sh)"
@@ -174,6 +177,8 @@ emit_legs() {
 
 # A leg counted for a claim must have a row in the correspondence record, and
 # the reverse: the grade is derived from the §2.2 record (PROOF-POLICY §8.4).
+# On a mismatch, report the differing claim IDs to stderr and exit the script
+# with status 1; matching records produce no output.
 check_leg_records() {
   local rec=verification/legs/README.adoc counted recorded
   counted="$(claims | awk -F'|' '$4=="re-proved"||$5=="re-proved"{print $1}' | LC_ALL=C sort)"

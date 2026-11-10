@@ -144,6 +144,7 @@ theorem le_readers {l l' : Label} (f : Le l l') :
   | .proxy => ge_sound f.atProxy
   | .target => ge_sound f.atTarget
 
+/-- Construct a flow from `l` to `l'` when every reader of `l'` can read `l`. -/
 def readers_le (l l' : Label) (h : ∀ r, reads l' r = true → reads l r = true) : Le l l' :=
   ⟨ge_complete _ _ (h .client), ge_complete _ _ (h .proxy), ge_complete _ _ (h .target)⟩
 
@@ -210,6 +211,8 @@ def geDec : ∀ a b, Dec (Ge a b)
   | false, false => .yes .fls
   | false, true => .no (fun h => nomatch h)
 
+/-- Decide whether data may flow from `l` to `l'` without adding readers.
+Return `yes` with a flow witness or `no` with a refutation. -/
 def leDec (l l' : Label) : Dec (Le l l') :=
   match geDec l.byClient l'.byClient, geDec l.byProxy l'.byProxy,
         geDec l.byTarget l'.byTarget with
@@ -220,6 +223,7 @@ def leDec (l l' : Label) : Dec (Le l l') :=
 
 /-! L-2: observers -/
 
+/-- The label readable by exactly the given role. -/
 def observer : Role → Label
   | .client => ⟨true, false, false⟩
   | .proxy => ⟨false, true, false⟩

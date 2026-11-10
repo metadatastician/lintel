@@ -48,6 +48,8 @@ def fieldDeq : (x y : Field) → Decidable (x = y)
 
 def fields : Vars := ⟨Field, fieldDeq⟩
 
+/-- Label the address for client and proxy, the query name for client and
+target, and local state for the client alone. -/
 def fieldLabel : fields.Var → readerSets.Carrier
   | .addr => address
   | .qn => qname
@@ -64,12 +66,16 @@ theorem tini_per_role (r : Role) :
 /-! Coalitions.  A union of down-closed observers is down-closed, over any
 lattice. -/
 
+/-- Observe a label when either observer sees it, retaining which observer
+supplied the witness. Downward closure preserves that choice. -/
 def union {L : Lattice} (V W : Observer L) : Observer L where
   sees l := Sum (V.sees l) (W.sees l)
   down p
     | .inl v => .inl (V.down p v)
     | .inr w => .inr (W.down p w)
 
+/-- Observe labels visible to either role individually. This does not grant
+visibility of a joined label merely because each role sees one component. -/
 def coalition (r r' : Role) : Observer readerSets := union (role r) (role r')
 
 theorem tini_coalition (r r' : Role) :
