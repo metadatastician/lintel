@@ -14,55 +14,71 @@ on:
     branches: ["main"]
   pull_request:
     branches: ["main"]
-  workflow_dispatch:
+  workflow_call:
 
-# Executes the enforcing gates from hyperpolymath/cicd-suite pinned at a full
-# 40-hex commit SHA without a cross-repository workflow_call (avoiding the
-# GitHub runner 0-job rejection on onboarded cross-repo workflow_call callers).
+# The 26 gates of hyperpolymath/cicd-suite's main-estate-audit.yml (@55556cf),
+# run inline as STEP-level composite actions pinned at 0da816c, instead of a
+# job-level cross-repo `workflow_call`. The job-level call is what failed at
+# startup with zero jobs; step-level composites at a full SHA are the form the
+# callee itself uses. The gate set is identical to the callee's, so no gate is
+# dropped. Repin on callee updates; never to PR-head commits.
 jobs:
   estate-audit:
-    name: Central Estate CI/CD Audit
-    runs-on: ubuntu-24.04
-    timeout-minutes: 15
-    permissions:
-      contents: read
+    runs-on: ubuntu-latest
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
-      - name: Checkout pinned cicd-suite gates
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          repository: hyperpolymath/cicd-suite
-          ref: bf7dd95cf49733019343ff485c2f45c6b261839c
-          path: .cicd-suite-tmp
-          persist-credentials: false
-
-      - name: Run enforcing cicd-suite governance, hygiene, and language gates
-        env:
-          REPO_OWNER: ${{ github.repository_owner }}
-          REPO_NAME: ${{ github.repository }}
-        run: |
-          set -euo pipefail
-          rm -rf "$RUNNER_TEMP/cicd-suite"
-          mv .cicd-suite-tmp "$RUNNER_TEMP/cicd-suite"
-          SUITE="$RUNNER_TEMP/cicd-suite/actions"
-
-          for gate in affirmation-check referencing-check code-hygiene-check secrets-check boj-cartridge-check; do
-            echo "=== cicd-suite: $gate ==="
-            bash "$SUITE/$gate/check.sh" .
-          done
-
-          echo "=== cicd-suite: spdx-license-check ==="
-          test -f LICENSE.txt || test -f LICENSE || test -f LICENSE.md || test -f LICENSE.adoc
-
-          echo "=== cicd-suite: idris2-abi & zig-unified-api-adapter ==="
-          if find . -name '*.zig' -not -path './.git/*' | grep -q .; then
-            if git grep -E 'std\.fs|std\.io' -- '*.zig'; then
-              echo "::error::Zig FFI modules contain prohibited side-effects (std.fs/std.io)"
-              exit 1
-            fi
-          fi
-          echo "Central Estate CI/CD Audit passed."
+      - name: Required Files Gate
+        uses: hyperpolymath/cicd-suite/actions/required-files-check@0da816c05ae7486671d863e07935f93981c0c2d5
+      - name: Code Hygiene Gate
+        uses: hyperpolymath/cicd-suite/actions/code-hygiene-check@0da816c05ae7486671d863e07935f93981c0c2d5
+      - name: Manifest Validation Gate
+        uses: hyperpolymath/cicd-suite/actions/manifest-check@0da816c05ae7486671d863e07935f93981c0c2d5
+      - name: Idris2 ABI Purity Gate
+        uses: hyperpolymath/cicd-suite/actions/idris2-abi-check@0da816c05ae7486671d863e07935f93981c0c2d5
+      - name: Zig Hexadeca API Gate
+        uses: hyperpolymath/cicd-suite/actions/zig-hexadeca-check@0da816c05ae7486671d863e07935f93981c0c2d5
+      - name: Contractile Validation Gate
+        uses: hyperpolymath/cicd-suite/actions/contractile-validation-check@0da816c05ae7486671d863e07935f93981c0c2d5
+      - name: Recipes Set Validation Gate
+        uses: hyperpolymath/cicd-suite/actions/recipes-set-check@0da816c05ae7486671d863e07935f93981c0c2d5
+      - name: Affirmation Document Gate
+        uses: hyperpolymath/cicd-suite/actions/affirmation-check@0da816c05ae7486671d863e07935f93981c0c2d5
+      - name: Academic Referencing Gate
+        uses: hyperpolymath/cicd-suite/actions/referencing-check@0da816c05ae7486671d863e07935f93981c0c2d5
+      - name: Semantic Audit Gate
+        uses: hyperpolymath/cicd-suite/actions/semantic-audit-check@0da816c05ae7486671d863e07935f93981c0c2d5
+      - name: SPDX License Gate
+        uses: hyperpolymath/cicd-suite/actions/spdx-license-check@0da816c05ae7486671d863e07935f93981c0c2d5
+      - name: Proof Runner Gate
+        uses: hyperpolymath/cicd-suite/actions/proof-runner-check@0da816c05ae7486671d863e07935f93981c0c2d5
+      - name: PRAT Testing Gate
+        uses: hyperpolymath/cicd-suite/actions/prat-check@0da816c05ae7486671d863e07935f93981c0c2d5
+      - name: Panic Attack & Pons Gate
+        uses: hyperpolymath/cicd-suite/actions/custom-tools-check@0da816c05ae7486671d863e07935f93981c0c2d5
+      - name: WWW & Well-Known Compliance Gate
+        uses: hyperpolymath/cicd-suite/actions/www-compliance-check@0da816c05ae7486671d863e07935f93981c0c2d5
+      - name: BoJ Cartridge Validation Gate
+        uses: hyperpolymath/cicd-suite/actions/boj-cartridge-check@0da816c05ae7486671d863e07935f93981c0c2d5
+      - name: Formatting Validation Gate
+        uses: hyperpolymath/cicd-suite/actions/formatting-check@0da816c05ae7486671d863e07935f93981c0c2d5
+      - name: Accreditations & Badges Gate
+        uses: hyperpolymath/cicd-suite/actions/badges-check@0da816c05ae7486671d863e07935f93981c0c2d5
+      - name: Metrics Extraction Gate
+        uses: hyperpolymath/cicd-suite/actions/metrics-check@0da816c05ae7486671d863e07935f93981c0c2d5
+      - name: Linguist & Banned Languages Gate
+        uses: hyperpolymath/cicd-suite/actions/linguist-check@0da816c05ae7486671d863e07935f93981c0c2d5
+      - name: Test & Benchmarks Dashboard Gate
+        uses: hyperpolymath/cicd-suite/actions/tests-benches-check@0da816c05ae7486671d863e07935f93981c0c2d5
+      - name: Hosting & Site Status Gate
+        uses: hyperpolymath/cicd-suite/actions/hosting-check@0da816c05ae7486671d863e07935f93981c0c2d5
+      - name: Git-Sea Analytics Gate
+        uses: hyperpolymath/cicd-suite/actions/gitsea-check@0da816c05ae7486671d863e07935f93981c0c2d5
+      - name: Trust & Humans Validation Gate
+        uses: hyperpolymath/cicd-suite/actions/trust-humans-check@0da816c05ae7486671d863e07935f93981c0c2d5
+      - name: Are We UnAPI Gate (Secret Scanning)
+        uses: hyperpolymath/cicd-suite/actions/secrets-check@0da816c05ae7486671d863e07935f93981c0c2d5
+      - name: Reasonably Good Token Validation Gate
+        uses: hyperpolymath/cicd-suite/actions/vaulted-tokens-check@0da816c05ae7486671d863e07935f93981c0c2d5
