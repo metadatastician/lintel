@@ -2,274 +2,173 @@
 # SPDX-License-Identifier: MPL-2.0
 # SPDX-FileCopyrightText: 2026 Jonathan D.A. Jewell
 #
-# grade-receipt.sh [--write|--check] [--commit <sha>]
+# grade-receipt.sh: the gate of Lintel's proof receipt,
+# verification/receipts/agda-pwg_praxis.deed (PROOF-POLICY §8.5).
 #
-# Writes (or checks) verification/receipts/agda-pwg_praxis.deed: the machine
-# record of Lintel's Agda claims and their Proof Witness Grades
-# (standards/3-practice/PROOF-POLICY.adoc §8, owner ruling 2026-11-04).
-# Pattern: hyperpolymath/secret-types scripts/grade-receipt.sh.
+#   --fetch-standards  fetch the pinned tools of the standard into
+#                      _build/standards and check each one's sha256
+#   --cross-check      the receipt's claims are README.adoc's theorems, and its
+#                      counted legs are the RECONCILED rows of
+#                      verification/legs/README.adoc (offline; no tools needed)
+#   --check            --cross-check, then: the pinned reader accepts the
+#                      receipt and derives its grades; the git checks of
+#                      §8.5.3 hold (the shared checker, with the secret-types
+#                      checkout as the clone of its import); every current
+#                      receipt still describes HEAD; and the reader refuses the
+#                      receipt with its first grade changed (negative control)
+#   --write            regenerate the receipt from its source,
+#                      verification/receipts/proof-receipt.toml, with the
+#                      shared writer of the standard (scripts/proof-receipt.js)
+#                      in the standards checkout at $STANDARDS_DIR
 #
-#   PWG-2ii (§8.2): the Agda proof is PROVEN under the canonical §2.1
-#   invocation, and both the Rocq and the Lean leg count: kernel-checked
-#   (scripts/check-legs.sh, no axioms) and RECONCILED against the Agda
-#   statement (verification/legs/README.adoc).  Not PWG-1: that needs a
-#   per-commit receipt of each checker's observed result, which this file is not.
+# The receipt is written, never typed: its source holds the claims, the run
+# ledger (each row copied from the CI log of the run) and the trusted base, and
+# the writer derives every manifest, digest, import and grade from git.  The
+# gate needs only the reader, the reference digest script and the git checker,
+# all at one pinned standards commit.  The writer is not pinned here yet: it is
+# in standards#1626.  Once that merges, pin it with the others and let --check
+# also regenerate the receipt (proof-receipt.js check).
 #
-# The receipt is DERIVED from the tree, except for the claim list below, which
-# is cross-checked in both directions against the claim IDs of README.adoc's
-# claim table.  It records the import cone (§8.2): every Lintel module and
-# every secret-types module they reach, with the sibling's pinned commit and a
-# sha256 per file.  It does not run Agda: the gate (scripts/check.sh, in
-# .github/workflows/proofs.yml) is the execution evidence, and the receipt says
-# which gate produced which result (PROOF-POLICY §2.3).
-#
-# Run scripts/fetch-siblings.sh first: the cone is hashed from the sibling
-# checkout at its pin.
+# Run scripts/fetch-siblings.sh first: the receipt imports secret-types at its
+# pin, and the git checks read that checkout.
 set -euo pipefail
 cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.."
-. scripts/proof-flags.sh
+export LC_ALL="${LC_ALL:-C.UTF-8}"
 
 out=verification/receipts/agda-pwg_praxis.deed
-deps="${DEPENDENCIES_DIR:-_build/dependencies}"
-st="${SECRET_TYPES_SRC:-$deps/secret-types/src}"
-mode=
-commit_override=
-while (( $# )); do
-  case "$1" in
-    --write|--check) mode="$1" ;;
-    --commit)        commit_override="${2:-}"; shift ;;
-    -h|--help)
-      printf 'usage: %s [--write|--check] [--commit <sha>]\n' "${0##*/}"
-      exit 0 ;;
-    *) printf 'unknown argument: %s\n' "$1" >&2; exit 2 ;;
-  esac
-  shift
-done
+src=verification/receipts/proof-receipt.toml
+sibling="${DEPENDENCIES_DIR:-_build/dependencies}/secret-types"
+default_branch=main
+# Claims of README.adoc's table that are not theorems (§8.1), so they have no
+# claim in the receipt: L-5 is a set of checked refusals, A-1 an assumption.
+not_theorems=(L-5 A-1)
 
-# ── The claim list ────────────────────────────────────────────────────────────
-# id | ledger token (README-EXPLAINME-STANDARD §5: proven | proven-with-postulates
-# | tested-only | argued | open) | PWG (PROOF-POLICY §8.5: 3 | 2i | 2ii | 1 |
-# ungraded; n/a for what is not a theory theorem, §8.1) | Rocq leg | Lean leg
-# (§2: transported | re-proved | waived | unavailable).
-claims() {
-  cat <<'ROWS'
-L-1|proven|2ii|re-proved|re-proved
-L-2|proven|2ii|re-proved|re-proved
-L-3|proven|2ii|re-proved|re-proved
-L-4|proven|2ii|re-proved|re-proved
-L-5|tested-only|n/a|n/a|n/a
-L-6|proven|2ii|re-proved|re-proved
-L-7|proven|2ii|re-proved|re-proved
-A-1|argued|n/a|n/a|n/a
-ROWS
+# The pinned standard: one commit, each file with its sha256.  At or after
+# standards#1564, which added (import …) to the reader and the checker.
+STANDARDS_COMMIT=f37ef5f62b7a18a769c8288f89a5a1a2a3db36f4
+READER_SHA256=8978546740ca2d6a1d90b769fe02159883cb18f1eb2c44b2eeb737bab341dcd2
+DIGEST_SHA256=dfc6dde01a3a79df638eebe4cad0eae584d8f17280077e149174c0667e9508f4
+CHECKER_SHA256=f2375747238464535d1b4a61f658f07cb2f8504c69bfb1812311c79429a4e23e
+STANDARDS_RAW="https://raw.githubusercontent.com/metadatastician/standards/$STANDARDS_COMMIT"
+std=_build/standards
+reader="$std/1-formats/deed/tools/deed_lint.js"
+digest="$std/scripts/proof-inputs-sha256.sh"
+checker="$std/scripts/check-proof-receipt.sh"
+
+die() { printf 'ERROR: %s\n' "$*" >&2; exit 1; }
+pinned() { # FILE SHA256 WHAT
+  [[ -f "$1" ]] || die "the pinned $3 is missing at $1: run bash scripts/grade-receipt.sh --fetch-standards"
+  [[ "$(sha256sum "$1" | cut -d' ' -f1)" == "$2" ]] || die "$1 is not the pinned $3 (sha256 differs)"
+}
+fetch() { # PATH SHA256 DEST
+  mkdir -p "$(dirname "$3")"
+  curl --proto '=https' --tlsv1.2 -fsSL "$STANDARDS_RAW/$1" -o "$3.tmp"
+  echo "$2  $3.tmp" | sha256sum --check --strict >/dev/null || { rm -f "$3.tmp"; die "the fetched $1 does not match its pinned sha256"; }
+  mv "$3.tmp" "$3"; printf 'FETCHED %s (standards %s)\n' "$1" "${STANDARDS_COMMIT:0:12}"
 }
 
-# ── Derived facts ─────────────────────────────────────────────────────────────
-repo="metadatastician/lintel"
-source_commit="${commit_override:-$(git rev-parse --short=12 HEAD 2>/dev/null || printf 'unknown')}"
-sibling_pin="$(sed -nE 's/^SECRET_TYPES_COMMIT="\$\{SECRET_TYPES_COMMIT:-([0-9a-f]{40})\}"$/\1/p' scripts/fetch-siblings.sh)"
-[[ "$sibling_pin" =~ ^[0-9a-f]{40}$ ]] || { echo 'ERROR: no 40-hex secret-types pin in scripts/fetch-siblings.sh' >&2; exit 1; }
-if [ ! -d "$st" ]; then
-  echo "ERROR: secret-types sources not found at $st (run scripts/fetch-siblings.sh)" >&2
-  exit 1
-fi
-
-# Print Lintel's module paths in sorted order.
-own_modules() { find src/Lintel -name '*.agda' | LC_ALL=C sort; }
-# Print the fixtures (positive controls and expected rejections) in sorted order.
-fixtures() { find tests/accept tests/reject -name '*.agda' | LC_ALL=C sort; }
-
-# Print the SecretTypes module names a file imports.
-st_imports() {
-  sed -nE 's/^[[:space:]]*(open[[:space:]]+)?import[[:space:]]+(SecretTypes(\.[A-Za-z0-9_′]+)*).*/\2/p' "$1"
+# ── Cross-checks against the human records (offline) ────────────────────────
+# The receipt's layout is the writer's, and the reader checks its structure;
+# these read only the claim heads and leg heads.
+receipt_claims() { sed -nE 's/^  \(claim :id "([^"]+)".*/\1/p' "$out" | LC_ALL=C sort; }
+# id|prover|state for each discharged rocq and lean leg of the receipt.
+receipt_legs() {
+  awk '
+    /^  \(claim :id "/ { match($0, /"[^"]+"/); id = substr($0, RSTART + 1, RLENGTH - 2) }
+    /^    \(leg :prover (rocq|lean) :route (re-proved|transported) / {
+      p = $0; sub(/.*:prover /, "", p); sub(/ .*/, "", p)
+      s = $0; sub(/.*:state /, "", s); sub(/[ )].*/, "", s)
+      print id "|" p "|" s
+    }' "$out" | LC_ALL=C sort
 }
-
-# Print the sibling's import cone: every SecretTypes module reached from
-# Lintel's modules, transitively, as paths relative to the sibling's src.
-sibling_cone() {
-  local -A seen=()
-  local -a queue=()
-  local f m p
-  while read -r f; do
-    while read -r m; do [ -n "$m" ] && queue+=("$m"); done < <(st_imports "$f")
-  done < <(own_modules)
-  while (( ${#queue[@]} )); do
-    m="${queue[0]}"; queue=("${queue[@]:1}")
-    [ -n "${seen[$m]:-}" ] && continue
-    seen[$m]=1
-    p="${m//.//}.agda"
-    if [ ! -f "$st/$p" ]; then
-      echo "ERROR: $m is imported but $st/$p does not exist" >&2
-      return 1
-    fi
-    while read -r f; do [ -n "$f" ] && queue+=("$f"); done < <(st_imports "$st/$p")
-  done
-  printf '%s\n' "${!seen[@]}" | sed 's|\.|/|g; s|$|.agda|' | LC_ALL=C sort
-}
-
-# Print escape-hatch lines from Lintel's Agda files (the sibling has its own
-# receipt and gate for its tree).
-escape_hits() {
-  grep -rn --include='*.agda' -E \
-    '(^|[^A-Za-z])(postulate|believe_me|trustMe|sorry|Admitted)([^A-Za-z]|$)|{-# *(TERMINATING|NON_TERMINATING) *#-}|--type-in-type' \
-    src/Lintel tests/accept tests/reject 2>/dev/null || true
-}
-
-# The claim list and README.adoc's claim table must name exactly the same
-# claims; one without the other is drift, in either direction.
-check_claim_ids() {
-  local decl doc
-  decl="$(claims | cut -d'|' -f1 | LC_ALL=C sort)"
+cross_check() {
+  [[ -f "$out" ]] || die "$out is missing"
+  local doc decl rec recorded counted
   doc="$(grep -oE '^\| [LA]-[0-9]+$' README.adoc | tr -d '| ' | LC_ALL=C sort -u || true)"
-  if [[ -z "$doc" ]]; then
-    echo 'ERROR: no claim ids found in README.adoc; the table layout changed' >&2
-    exit 1
-  fi
+  [[ -n "$doc" ]] || die 'no claim ids found in README.adoc; the table layout changed'
+  decl="$( { receipt_claims; printf '%s\n' "${not_theorems[@]}"; } | LC_ALL=C sort)"
   if [[ "$decl" != "$doc" ]]; then
-    echo 'ERROR: claim ids differ between this receipt and README.adoc' >&2
-    diff <(printf '%s\n' "$doc") <(printf '%s\n' "$decl") \
-      | sed 's/^</  only in README.adoc:/; s/^>/  only in grade-receipt.sh:/' >&2
-    exit 1
+    { diff <(printf '%s\n' "$doc") <(printf '%s\n' "$decl") || true; } \
+      | grep -E '^[<>]' | sed "s/^</  only in README.adoc:/; s|^>|  only in the receipt (or not_theorems):|" >&2
+    die 'claim ids differ between the receipt and README.adoc'
   fi
-}
-
-# Print repository-relative Rocq sources, then Lean sources (excluding .lake),
-# each group sorted, followed by the Lean package and toolchain files.
-leg_sources() {
-  find verification/legs/rocq -name '*.v' | LC_ALL=C sort
-  find verification/legs/lean -name '*.lean' -not -path '*/.lake/*' | LC_ALL=C sort
-  printf '%s\n' verification/legs/lean/lakefile.toml verification/legs/lean/lean-toolchain
-}
-# Print the fixed list of leg inputs relative to the secret-types checkout.
-sibling_leg_sources() {
-  printf '%s\n' verification/legs/rocq/SecretTypes.v verification/legs/lean/SecretTypes/Generic.lean \
-    verification/legs/lean/lakefile.toml verification/legs/lean/lean-toolchain
-}
-
-# Print the (legs) block: per leg, the pinned checker, its invocation, the
-# axiom check, and the sha256 of every input, the sibling's leg files
-# included.  The pins are read from scripts/check-legs.sh, which the gate uses.
-# Write to stdout without running either checker. A missing sibling leg input
-# reports an error to stderr and returns 1; stdout may already contain output.
-emit_legs() {
-  local coq lean sib="$deps/secret-types"
-  coq="$(sed -n 's/^COQ_VERSION=\(.*\)$/\1/p' scripts/check-legs.sh)"
-  lean="$(sed -n 's/^LEAN_VERSION=\(.*\)$/\1/p' scripts/check-legs.sh)"
-  printf '  (legs\n    :gate "bash scripts/check-legs.sh"\n    :ci ".github/workflows/proofs.yml (job legs)"\n'
-  printf '    :correspondence "verification/legs/README.adoc"\n'
-  printf '    :route "re-proved"\n'
-  printf '    :route-reason "Agda2Dedukti is an Agda backend pinned to a fork (b026db1, GHC 8.10) and cannot run on Agda %s; no released Dedukti/Lambdapi exporter to Lean 4, and no pinned route to Rocq"\n' "$(proof_agda_pin)"
-  printf '    :state "RECONCILED"\n'
-  printf '    :review "statement comparison written by Claude Code; provisional until owner review (estate doctrine 4)"\n'
-  printf '    :depends-on "secret-types legs at the sibling pin (record, language, typing, TINI): imported, not restated"\n'
-  printf '    (leg :prover "rocq" :checker "coqc" :version "%s" :invocation "coqc -q -Q <sibling>/verification/legs/rocq SecretTypesLeg Lintel.v (in verification/legs/rocq)" :libraries "secret-types Rocq leg only (no standard library)" :axioms "none (Print Assumptions: Closed under the global context)")\n' "$coq"
-  printf '    (leg :prover "lean" :checker "lean" :version "%s" :invocation "lake build; lake env lean Axioms.lean (in verification/legs/lean)" :libraries "secret-types Lean leg only (no Mathlib)" :axioms "none (#print axioms: does not depend on any axioms)")\n' "$lean"
-  printf '    (inputs\n'
-  while read -r p; do
-    printf '      (input :path "%s" :sha256 "%s")\n' "$p" "$(sha256sum "$p" | cut -d' ' -f1)"
-  done < <(leg_sources)
-  while read -r p; do
-    [ -f "$sib/$p" ] || { echo "ERROR: sibling leg file $sib/$p missing (run scripts/fetch-siblings.sh)" >&2; return 1; }
-    printf '      (input :repository "hyperpolymath/secret-types" :path "%s" :sha256 "%s")\n' "$p" "$(sha256sum "$sib/$p" | cut -d' ' -f1)"
-  done < <(sibling_leg_sources)
-  printf '    ))\n'
-}
-
-# Each counted leg must be RECONCILED in the correspondence record, and
-# the reverse: the grade is derived from the §2.2 record (PROOF-POLICY §8.4).
-# On a mismatch, report the differing claim IDs to stderr and exit the script
-# with status 1; matching records produce no output.
-check_leg_records() {
-  local rec=verification/legs/README.adoc counted recorded
-  counted="$(claims | awk -F'|' '
-    $4=="re-proved" || $4=="transported" {print $1 "|rocq|RECONCILED"}
-    $5=="re-proved" || $5=="transported" {print $1 "|lean|RECONCILED"}
-  ' | LC_ALL=C sort)"
+  rec=verification/legs/README.adoc
   recorded="$(awk -F'|' '
-    function trim(s) {gsub(/^[[:space:]]+|[[:space:]]+$/, "", s); return s}
-    /^\| [LA]-[0-9]+([[:space:]]|$)/ {
-      print trim($2) "|rocq|" trim($3)
-      print trim($2) "|lean|" trim($4)
-    }
+    function trim(s) { gsub(/^[[:space:]]+|[[:space:]]+$/, "", s); return s }
+    /^\| [LA]-[0-9]+([[:space:]]|$)/ { print trim($2) "|rocq|" trim($3); print trim($2) "|lean|" trim($4) }
   ' "$rec" | LC_ALL=C sort)"
+  counted="$(receipt_legs)"
   if [[ "$counted" != "$recorded" ]]; then
-    echo "ERROR: counted legs must match RECONCILED states in $rec" >&2
-    diff <(printf '%s\n' "$recorded") <(printf '%s\n' "$counted") \
-      | grep -E '^[<>]' | sed "s|^<|  only in $rec:|; s/^>/  only in grade-receipt.sh:/" >&2
-    exit 1
+    { diff <(printf '%s\n' "$recorded") <(printf '%s\n' "$counted") || true; } \
+      | grep -E '^[<>]' | sed "s|^<|  only in $rec:|; s/^>/  only in the receipt:/" >&2
+    die "the receipt's legs and their states must be the rows of $rec"
   fi
+  printf 'PASS: the receipt names README.adoc'"'"'s theorems (%s), and its legs are the rows of %s\n' \
+    "$(receipt_claims | paste -sd ' ' -)" "$rec"
 }
 
-# Print the derived receipt.
-emit() {
-  local cone
-  cone="$(sibling_cone)"
-  printf ';; SPDX-License-Identifier: CC-BY-SA-4.0\n'
-  printf ';; SPDX-FileCopyrightText: 2026 Jonathan D.A. Jewell\n'
-  printf ';; GENERATED by scripts/grade-receipt.sh; regenerate with --write, check with --check.\n'
-  printf ';; This describes the gate and tree; the CI log is the execution evidence.\n'
-  printf '(praxis-deed\n  :schema-version "1.0.0"\n  :canonical-name "lintel-agda-pwg-receipt"\n'
-  printf '  (identity\n    :project "lintel"\n    :name "agda verification receipt (Proof Witness Grades)"\n'
-  printf '    :repository "%s"\n    :repo-uuid #u5"github.com/%s"\n' "$repo" "$repo"
-  printf '    :kind "theory"\n    :source-commit "%s")\n' "$source_commit"
-  printf '  (prover\n    :tool "agda"\n    :version "%s"\n    :provenance "%s"\n' "$(proof_agda_pin)" "$(proof_agda_provenance)"
-  printf '    :library "none (--no-libraries; Agda builtins and the pinned sibling only)"\n    :flags "%s"\n' "$(proof_flags_line)"
-  printf '    :flags-source "scripts/proof-flags.sh")\n'
-  printf '  (conformance\n    :policy "standards/3-practice/PROOF-POLICY.adoc"\n'
-  printf '    :policy-revision "section 2.1 dated 2026-11-01; section 8 (PWG) dated 2026-11-04"\n'
-  printf '    :canonical-invocation "agda --safe --without-K --cubical-compatible"\n'
-  printf '    :cubical-compatible "met"\n'
-  printf '    :stronger-than-canonical ("--no-libraries" "--ignore-interfaces" "--double-check" "-W error"))\n'
-  printf '  (gate\n    :command "bash scripts/check.sh"\n    :ci ".github/workflows/proofs.yml"\n'
-  printf '    :module-count %s\n    :fixture-count %s)\n' "$(own_modules | wc -l | tr -d ' ')" "$(fixtures | wc -l | tr -d ' ')"
-  printf '  (trust-base\n    :postulates %s\n    :escape-hatches %s\n' \
-    "$(grep -rlw --include='*.agda' postulate src/Lintel tests/accept tests/reject 2>/dev/null | wc -l | tr -d ' ')" \
-    "$(escape_hits | wc -l | tr -d ' ')"
-  printf '    :library-dependencies 0\n    :axioms-assumed 0\n'
-  printf '    :assumption "A-1 non-collusion is a stated hypothesis of the threat model (argued), not an axiom of any proof")\n'
-  printf '  ; PWGs apply to theory theorems (PROOF-POLICY section 8.1); L-5 (refusal fixtures) and A-1 (an assumption) are n/a.\n'
-  printf '  ; Rocq and Lean legs: re-proved by hand on top of secret-types'"'"' legs, RECONCILED in verification/legs/README.adoc.\n'
-  emit_legs
-  printf '  (claims\n'
-  while IFS='|' read -r id token pwg coq lean; do
-    printf '    (claim :id "%s" :token "%s" :pwg "%s" :coq-leg "%s" :lean-leg "%s")\n' "$id" "$token" "$pwg" "$coq" "$lean"
-  done < <(claims)
-  printf '  )\n  ; The import cone: every module the proofs rest on, hashed.\n  (modules\n'
-  while read -r m; do
-    printf '    (module :path "%s" :sha256 "%s")\n' "$m" "$(sha256sum "$m" | cut -d' ' -f1)"
-  done < <(own_modules)
-  printf '  )\n  (sibling\n    :repository "hyperpolymath/secret-types"\n    :commit "%s"\n' "$sibling_pin"
-  while read -r m; do
-    printf '    (module :path "src/%s" :sha256 "%s")\n' "$m" "$(sha256sum "$st/$m" | cut -d' ' -f1)"
-  done <<< "$cone"
-  printf '  )\n  (fixtures\n'
-  while read -r f; do
-    printf '    (fixture :path "%s")\n' "$f"
-  done < <(fixtures)
-  printf '  )\n)\n'
+# ── The canon checks ────────────────────────────────────────────────────────
+check() {
+  cross_check
+  command -v bun >/dev/null || die 'bun is needed to run the pinned reader'
+  pinned "$reader" "$READER_SHA256" reader
+  pinned "$digest" "$DIGEST_SHA256" 'reference digest script'
+  pinned "$checker" "$CHECKER_SHA256" 'git checker'
+  [[ -d "$sibling/.git" ]] || die "no secret-types checkout at $sibling: run bash scripts/fetch-siblings.sh"
+  local json base
+  json="$(bun "$reader" --proof-receipt-json "$out")" || die "the pinned reader refuses $out"
+  printf 'PASS: the pinned reader (standards %s) accepts %s; source-commit %s\n' \
+    "${STANDARDS_COMMIT:0:12}" "$out" "$(jq -r .source_commit <<<"$json")"
+  jq -r '.claims[] | "  \(.id)  \(.pwg)  foundation-diverse \(.foundation_diverse)"' <<<"$json"
+
+  base="refs/remotes/origin/$default_branch"
+  git rev-parse -q --verify "$base" >/dev/null || base="refs/heads/$default_branch"
+  bash "$checker" --branch "$base" --import "hyperpolymath/secret-types=$sibling" "$out" . \
+    || die 'the git checks of PROOF-POLICY §8.5.3 failed'
+
+  # Each current receipt must still describe HEAD: its manifest's digest at
+  # HEAD is the digest it records.  A change to an input needs a new run.  A
+  # new file in a cone comes with an import in a file the manifest lists, so a
+  # cone that grows changes the digest too.  The writer's own check, once it
+  # is pinned here, recomputes the whole input set instead.
+  local head prover want paths got
+  head="$(git rev-parse HEAD)"
+  while IFS=$'\t' read -r prover want paths; do
+    # shellcheck disable=SC2086
+    got="$(bash "$digest" "$head" $paths)" || die "the $prover inputs of the receipt are not all files at HEAD"
+    [[ "$got" == "$want" ]] || die "the $prover inputs changed since its run (recorded $want, HEAD gives $got): record a new run in $src and regenerate"
+    if [[ -n "$(git status --porcelain -- $paths)" ]]; then die "the $prover inputs differ from HEAD in the working tree"; fi
+    printf 'PASS: the %s receipt describes HEAD (%s)\n' "$prover" "${head:0:12}"
+  done < <(jq -r '[.claims[].legs[] | . as $l | .receipts[] | select(.state == "current")
+      | {prover: $l.prover, d: ."inputs-sha256", p: ([.inputs_manifest[].path] | join(" "))}] | unique[]
+      | "\(.prover)\t\(.d)\t\(.p)"' <<<"$json")
+
+  # Negative control: the same receipt with its first grade changed is refused.
+  local first wrong err
+  first="$(jq -r '.claims[0].pwg' <<<"$json")"
+  case "$first" in PWG-1) wrong=PWG-2ii ;; *) wrong=PWG-1 ;; esac
+  ctl="$(mktemp -d)"; trap 'rm -rf "${ctl:-}"' EXIT
+  awk -v w="$wrong" '!done && /:pwg /{sub(/:pwg [A-Za-z0-9-]+/, ":pwg " w); done=1} {print}' "$out" > "$ctl/control_praxis.deed"
+  if err="$(bun "$reader" --proof-receipt-json "$ctl/control_praxis.deed" 2>&1)"; then
+    die "negative control: the reader accepted the first claim recorded as :pwg $wrong"
+  fi
+  grep -q 'records :pwg' <<<"$err" || { printf '%s\n' "$err" >&2; die 'negative control: refused for another reason than the grade'; }
+  printf 'PASS: negative control (the first claim recorded as :pwg %s is refused: its legs support %s)\n' "$wrong" "$first"
 }
 
-check_claim_ids
-check_leg_records
-
-case "$mode" in
-  --write|"")
-    mkdir -p "$(dirname "$out")"
-    emit > "$out"
-    printf 'WROTE %s (source-commit %s)\n' "$out" "$source_commit"
-    ;;
-  --check)
-    tmp="$(mktemp)"; diff_out="$(mktemp)"; trap 'rm -f "$tmp" "$diff_out"' EXIT
-    emit > "$tmp"
-    # The source-commit line is expected to differ: a committed receipt names
-    # its parent.  Everything else must match byte for byte.
-    filter() { grep -v '^    :source-commit ' "$1"; }
-    if ! diff -u <(filter "$out") <(filter "$tmp") > "$diff_out" 2>&1; then
-      echo 'ERROR: verification receipt does not match the tree:' >&2
-      sed -n '1,60p' "$diff_out" >&2
-      echo 'Regenerate with: bash scripts/grade-receipt.sh --write' >&2
-      exit 1
-    fi
-    echo "PASS: verification receipt matches the tree ($(own_modules | wc -l | tr -d ' ') Lintel modules, $(sibling_cone | wc -l | tr -d ' ') sibling modules, all sha256 verified)"
-    ;;
+case "${1:-}" in
+  --fetch-standards)
+    fetch 1-formats/deed/tools/deed_lint.js "$READER_SHA256" "$reader"
+    fetch scripts/proof-inputs-sha256.sh "$DIGEST_SHA256" "$digest"
+    fetch scripts/check-proof-receipt.sh "$CHECKER_SHA256" "$checker" ;;
+  --cross-check) cross_check ;;
+  --check) check ;;
+  --write)
+    writer="${STANDARDS_DIR:-}/scripts/proof-receipt.js"
+    [[ -n "${STANDARDS_DIR:-}" && -f "$writer" ]] \
+      || die 'set STANDARDS_DIR to a standards checkout that has scripts/proof-receipt.js (standards#1626)'
+    bun "$writer" write "$src"
+    cross_check ;;
+  -h|--help|'') sed -n '5,33p' "$0" | sed 's/^# \{0,1\}//'; [[ -n "${1:-}" ]] ;;
+  *) printf 'unknown argument: %s\n' "$1" >&2; exit 2 ;;
 esac

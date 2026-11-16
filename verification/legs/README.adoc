@@ -208,12 +208,11 @@ a theorem (§8.1).
   and its Agda statement rests on the comparison above. Claude Code wrote it,
   and it is provisional until the owner reviews it (estate doctrine 4). No tool
   checks it.
-* L-6 rests on secret-types' legs of N-7, as the Agda rests on N-7. Their
-  grade bounds this one.
+* L-6 rests on secret-types' legs of N-7, as the Agda rests on N-7. Each run
+  of a leg checks those files at the pin, and the receipt lists them as an
+  `(import …)`, so the receipt of L-6 covers them.
 * `foundation_diverse` (§8.3) stays false. Agda, Rocq and Lean are all
   dependent type theories.
-* The grade is `PWG-2ii`, not `PWG-1`. `PWG-1` needs a receipt per witness,
-  per commit, recording the observed result of a pinned checker run on that
-  commit (§8.2). The receipt here records each leg's version, invocation and
-  input digests, the sibling's leg files included. The CI log of the `legs`
-  job is the observed result, and it is not yet captured as a receipt.
+* The grade the receipt derives, `PWG-1`, counts these legs because their
+  state is `RECONCILED`. That state rests on the comparison above, so the
+  grade is provisional with it.

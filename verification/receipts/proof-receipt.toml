@@ -1,0 +1,170 @@
+# SPDX-License-Identifier: MPL-2.0
+# SPDX-FileCopyrightText: 2026 Jonathan D.A. Jewell
+#
+# The receipt source of Lintel (PROOF-POLICY §8.5): what a person types.  The
+# receipt, verification/receipts/agda-pwg_praxis.deed, is written from it by
+# the shared writer of the standard, scripts/proof-receipt.js, which derives
+# every digest, manifest, import and grade from git:
+#
+#   bun <standards>/scripts/proof-receipt.js write verification/receipts/proof-receipt.toml
+#
+# Each [[run]] is copied from the CI log of the run that printed it.  A run's
+# inputs digest is not typed: the writer computes it at the run's commit.
+
+repository = "metadatastician/lintel"
+receipt = "verification/receipts/agda-pwg_praxis.deed"
+canonical-name = "lintel-proof-receipt"
+spdx = "CC-BY-SA-4.0"
+copyright = "2026 Jonathan D.A. Jewell"
+header = [
+  "The proof receipt of Lintel (PROOF-POLICY §8.5.1).",
+  "GENERATED from verification/receipts/proof-receipt.toml by scripts/proof-receipt.js",
+  "of the standard: every digest, manifest and grade is derived from git, none is typed.",
+  "Check it with the pinned reader and git checker: bash scripts/grade-receipt.sh --check",
+  "L-5 is a set of checked refusals, not a theorem (§8.1), and has no claim here.",
+  "The trusted base is the postulates of the prover-supplied modules of the import",
+  "cone of src/Lintel/All.agda (agda --dependency-graph), each BUILTIN-bound.",
+  "The Rocq and Lean legs count as RECONCILED on a statement comparison that is",
+  "provisional until the owner reviews it (verification/legs/README.adoc), so the grade is too.",
+]
+
+# §8.4: Agda 2.6.4.3's prover-supplied modules in the cone are Agda.Primitive
+# and Agda.Builtin.{Bool,Equality,Nat,Sigma,Unit}; only Agda.Primitive
+# declares postulates.
+[[trusted-base]]
+prover = "agda"
+module = "Agda.Primitive"
+name = "Level"
+binding = "BUILTIN LEVEL"
+
+[[trusted-base]]
+prover = "agda"
+module = "Agda.Primitive"
+name = "lzero"
+binding = "BUILTIN LEVELZERO"
+
+[[trusted-base]]
+prover = "agda"
+module = "Agda.Primitive"
+name = "lsuc"
+binding = "BUILTIN LEVELSUC"
+
+[[trusted-base]]
+prover = "agda"
+module = "Agda.Primitive"
+name = "_⊔_"
+binding = "BUILTIN LEVELMAX"
+
+# ── Input sets (§8.5.1) ─────────────────────────────────────────────────────
+# scripts/fetch-siblings.sh holds the secret-types pin, so it is in each leg's
+# home input set: a repin changes every leg's digest.
+[inputs.agda]
+roots = ["src/Lintel/All.agda"]
+include = ["src"]
+paths = ["scripts/fetch-siblings.sh"]
+
+[[inputs.agda.import]]
+repository = "hyperpolymath/secret-types"
+commit = "45046c2c0f92ddae2ff73c8c05555bed419f46ad"
+checkout = "_build/dependencies/secret-types"
+include = ["src"]
+pin = { file = "scripts/fetch-siblings.sh", pattern = 'SECRET_TYPES_COMMIT:-([0-9a-f]{40})' }
+
+[inputs.rocq]
+paths = ["verification/legs/rocq/Lintel.v", "scripts/fetch-siblings.sh"]
+
+[[inputs.rocq.import]]
+repository = "hyperpolymath/secret-types"
+commit = "45046c2c0f92ddae2ff73c8c05555bed419f46ad"
+checkout = "_build/dependencies/secret-types"
+paths = ["verification/legs/rocq/SecretTypes.v"]
+pin = { file = "scripts/fetch-siblings.sh", pattern = 'SECRET_TYPES_COMMIT:-([0-9a-f]{40})' }
+
+[inputs.lean]
+paths = [
+  "verification/legs/lean/**/*.lean",
+  "verification/legs/lean/lakefile.toml",
+  "verification/legs/lean/lean-toolchain",
+  "scripts/fetch-siblings.sh",
+]
+
+[[inputs.lean.import]]
+repository = "hyperpolymath/secret-types"
+commit = "45046c2c0f92ddae2ff73c8c05555bed419f46ad"
+checkout = "_build/dependencies/secret-types"
+paths = [
+  "verification/legs/lean/**/*.lean",
+  "verification/legs/lean/lakefile.toml",
+  "verification/legs/lean/lean-toolchain",
+]
+pin = { file = "scripts/fetch-siblings.sh", pattern = 'SECRET_TYPES_COMMIT:-([0-9a-f]{40})' }
+
+# ── Claims ──────────────────────────────────────────────────────────────────
+# The theorems of README.adoc's claim table; both recheck legs are re-proved
+# and RECONCILED in verification/legs/README.adoc.
+[[claim]]
+id = "L-1"
+token = "proven"
+rocq = { route = "re-proved", state = "RECONCILED" }
+lean = { route = "re-proved", state = "RECONCILED" }
+
+[[claim]]
+id = "L-2"
+token = "proven"
+rocq = { route = "re-proved", state = "RECONCILED" }
+lean = { route = "re-proved", state = "RECONCILED" }
+
+[[claim]]
+id = "L-3"
+token = "proven"
+rocq = { route = "re-proved", state = "RECONCILED" }
+lean = { route = "re-proved", state = "RECONCILED" }
+
+[[claim]]
+id = "L-4"
+token = "proven"
+rocq = { route = "re-proved", state = "RECONCILED" }
+lean = { route = "re-proved", state = "RECONCILED" }
+
+[[claim]]
+id = "L-6"
+token = "proven"
+rocq = { route = "re-proved", state = "RECONCILED" }
+lean = { route = "re-proved", state = "RECONCILED" }
+
+[[claim]]
+id = "L-7"
+token = "proven"
+rocq = { route = "re-proved", state = "RECONCILED" }
+lean = { route = "re-proved", state = "RECONCILED" }
+
+# ── The run ledger ──────────────────────────────────────────────────────────
+# Run 42740256887 is the Agda proofs workflow on the push of 89ceac3 to main.
+# Its proof gate and its legs job passed; only the old-shape receipt check of
+# that run failed, which this receipt replaces.
+[[run]]
+prover = "agda"
+run = "https://github.com/metadatastician/lintel/actions/runs/42740256887/attempts/1"
+commit = "89ceac3b8685467c664737a98364eef4febb9ff2"
+checker = "Agda version 2.6.4.3 (Debian 13 agda-bin=2.6.4.3-1+b2, container debian:13-slim)"
+invocation = "agda --safe --without-K --cubical-compatible --no-libraries --ignore-interfaces --double-check -W error -i src -i _build/dependencies/secret-types/src src/Lintel/All.agda"
+reported = "PASS: Lintel proofs, 5 positive control(s), 4 expected rejection(s), negative control"
+state = "current"
+
+[[run]]
+prover = "rocq"
+run = "https://github.com/metadatastician/lintel/actions/runs/42740256887/attempts/1"
+commit = "89ceac3b8685467c664737a98364eef4febb9ff2"
+checker = "Coq 8.18.0 (Ubuntu 24.04 coq=8.18.0+dfsg-1build2)"
+invocation = "coqc -q -Q . SecretTypesLeg SecretTypes.v (in the secret-types leg); coqc -q -Q ../../../_build/dependencies/secret-types/verification/legs/rocq SecretTypesLeg Lintel.v (in verification/legs/rocq)"
+reported = "PASS: Rocq leg (Coq 8.18.0), 36 statements closed under the global context"
+state = "current"
+
+[[run]]
+prover = "lean"
+run = "https://github.com/metadatastician/lintel/actions/runs/42740256887/attempts/1"
+commit = "89ceac3b8685467c664737a98364eef4febb9ff2"
+checker = "Lean 4.24.0 (release tarball, sha256 b14f5e5159219dd1a1956c3b806813319f5e94ccd5bdfd56f54520609a5bb5ec)"
+invocation = "lake build; lake env lean Axioms.lean (in verification/legs/lean)"
+reported = "PASS: Lean leg (Lean 4.24.0, core only), 36 statements depend on no axioms"
+state = "current"

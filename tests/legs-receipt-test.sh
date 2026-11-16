@@ -7,20 +7,19 @@ trap 'rm -rf "$fixture"' EXIT
 mkdir -p "$fixture/scripts" "$fixture/src/Lintel" "$fixture/tests/accept" "$fixture/tests/reject" "$fixture/bin"
 cp "$root/scripts/"{check-legs,grade-receipt,proof-flags,fetch-siblings}.sh "$fixture/scripts/"
 cp "$root/README.adoc" "$fixture/"
-mkdir -p "$fixture/verification"
+mkdir -p "$fixture/verification/receipts"
 cp -R "$root/verification/legs" "$fixture/verification/"
+cp "$root/verification/receipts/agda-pwg_praxis.deed" "$fixture/verification/receipts/"
 sibling="$fixture/_build/dependencies/secret-types"
-mkdir -p "$sibling/src" "$sibling/verification/legs/rocq" "$sibling/verification/legs/lean/SecretTypes"
-mkdir -p "$sibling/src/SecretTypes"
-printf "import SecretTypes.Prelude\n" > "$fixture/src/Lintel/All.agda"
-touch "$sibling/src/SecretTypes/Prelude.agda" "$sibling/verification/legs/rocq/SecretTypes.v" \
-  "$sibling/verification/legs/lean/SecretTypes/Generic.lean" \
+mkdir -p "$sibling/verification/legs/rocq" "$sibling/verification/legs/lean/SecretTypes"
+touch "$sibling/verification/legs/rocq/SecretTypes.v" "$sibling/verification/legs/lean/SecretTypes/Generic.lean" \
   "$sibling/verification/legs/lean/lean-toolchain" "$sibling/verification/legs/lean/lakefile.toml"
 
-# A baseline receipt can be generated, but neither pending leg may overwrite it.
-bash "$fixture/scripts/grade-receipt.sh" --write > /dev/null
-receipt="$fixture/verification/receipts/agda-pwg_praxis.deed"
-cp "$receipt" "$fixture/baseline"
+# The committed receipt agrees with README.adoc and the legs record; a leg
+# whose correspondence is not RECONCILED, or a claim missing from either side,
+# fails the cross-check.
+bash "$fixture/scripts/grade-receipt.sh" --cross-check > /dev/null
+echo "PASS: the receipt's claims and legs match the human records"
 for leg in rocq lean; do
   if [ "$leg" = rocq ]; then
     sed 's/| L-1 | RECONCILED | RECONCILED/| L-1 | PENDING | RECONCILED/' "$root/verification/legs/README.adoc" > "$fixture/verification/legs/README.adoc"
@@ -28,12 +27,20 @@ for leg in rocq lean; do
     sed 's/| L-1 | RECONCILED | RECONCILED/| L-1 | RECONCILED | PENDING/' "$root/verification/legs/README.adoc" > "$fixture/verification/legs/README.adoc"
   fi
   status=0
-  bash "$fixture/scripts/grade-receipt.sh" --write > "$fixture/output" 2>&1 || status=$?
+  bash "$fixture/scripts/grade-receipt.sh" --cross-check > "$fixture/output" 2>&1 || status=$?
   [ "$status" -eq 1 ]
-  grep -q 'counted legs must match RECONCILED states' "$fixture/output"
-  cmp "$receipt" "$fixture/baseline"
-  echo "PASS: pending $leg correspondence rejects receipt generation"
+  grep -q "the receipt's legs and their states must be the rows" "$fixture/output"
+  grep -q "L-1|$leg|PENDING" "$fixture/output"
+  echo "PASS: a pending $leg correspondence fails the receipt cross-check"
 done
+cp "$root/verification/legs/README.adoc" "$fixture/verification/legs/README.adoc"
+sed 's/^| L-7$/| L-8/' "$root/README.adoc" > "$fixture/README.adoc"
+status=0
+bash "$fixture/scripts/grade-receipt.sh" --cross-check > "$fixture/output" 2>&1 || status=$?
+[ "$status" -eq 1 ]
+grep -q 'claim ids differ between the receipt and README.adoc' "$fixture/output"
+echo "PASS: a claim missing from the receipt fails the cross-check"
+cp "$root/README.adoc" "$fixture/"
 
 # Fake checkers exercise orchestration and diagnostics, not proof correctness.
 cat > "$fixture/bin/coqc" <<'COQ'
