@@ -43,6 +43,7 @@ workflows:
     '.github/workflows/lock-sync-gate.yml': []
     '.github/workflows/main-estate-audit.yml':
         - 'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1'
+        - 'hyperpolymath/cicd-suite@0da816c05ae7486671d863e07935f93981c0c2d5'
     '.github/workflows/mirror.yml':
         - 'metadatastician/standards@46ee18323305d5b36e2eef936e47dd54c39ea736'
     '.github/workflows/ossf-best-practices.yml':
