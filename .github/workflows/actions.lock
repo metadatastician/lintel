@@ -45,7 +45,7 @@ workflows:
         - 'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1'
         - 'hyperpolymath/proven-cicd-and-workflows@0da816c05ae7486671d863e07935f93981c0c2d5'
     '.github/workflows/mirror.yml':
-        - 'hyperpolymath/standards@e16a23170fa378bf3b1444c3ee94100413ae3ff7'
+        - 'metadatastician/standards@46ee18323305d5b36e2eef936e47dd54c39ea736'
     '.github/workflows/ossf-best-practices.yml':
         - 'actions/checkout@v7.0.1'
     '.github/workflows/pages.yml':
@@ -74,7 +74,7 @@ workflows:
     '.github/workflows/rust-ci.yml':
         - 'metadatastician/standards@46ee18323305d5b36e2eef936e47dd54c39ea736'
     '.github/workflows/scorecard.yml':
-        - 'hyperpolymath/standards@e16a23170fa378bf3b1444c3ee94100413ae3ff7'
+        - 'metadatastician/standards@46ee18323305d5b36e2eef936e47dd54c39ea736'
     '.github/workflows/secret-scanner.yml':
         - 'metadatastician/standards@b8f60511e76c9015d86990317162dce653c92fe1'
     '.github/workflows/security-policy.yml':
