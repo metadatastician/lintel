@@ -1,0 +1,6 @@
+-- SPDX-License-Identifier: MPL-2.0
+-- Refusal control: CRLF line ends.  Agda reads a carriage return as
+-- whitespace, but the scan does not lex it, so it refuses the file.
+module Fixture.CarriageReturn where
+postulate
+  Hidden : Set

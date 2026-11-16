@@ -51,6 +51,10 @@ jobs:
         run: bash scripts/fetch-siblings.sh
       - name: Proof gate
         run: bash scripts/check.sh
+      # PROOF-POLICY §8.4 and §8.5.1: the receipt's trusted base and Agda input
+      # set must be exactly what the pinned Agda reports for the graded root.
+      - name: Receipt trusted base and Agda cone match the prover
+        run: bash scripts/check-trusted-base.sh
       - name: Receipt claims and legs match README.adoc and the legs record
         run: bash scripts/grade-receipt.sh --cross-check
   # The Rocq and Lean recheck legs (PROOF-POLICY §2), re-proved by hand on top

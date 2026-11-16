@@ -1,0 +1,11 @@
+-- SPDX-License-Identifier: MPL-2.0
+-- Refusal control: a nested module reuses the short name of a bound
+-- postulate for an unbound one.  BUILTIN bindings are keyed by short name,
+-- so the scan refuses any module after the first.
+module Fixture.NestedModule where
+postulate
+  A : Set
+{-# BUILTIN ONE A #-}
+module Inner where
+  postulate
+    A : Set

@@ -85,10 +85,18 @@ run for every witness, describing the receipt's `:source-commit` (§8.2,
 https://github.com/metadatastician/lintel/actions/runs/42740256887[42740256887]
 of the `Agda proofs` workflow, on `89ceac3` on `main`. Its proof gate and its
 `legs` job passed; only the old-shape receipt check of that run failed, and
-this receipt replaces it. Each receipt lists every file its run read, the
-secret-types files at the pin as an `(import …)`, and the git checks confirm
-each one at its commit. A change to any of them fails the currency check until
-a new run is recorded.
+this receipt replaces it. Each receipt lists the files of its graded
+invocation: for Agda, the import cone of `src/Lintel/All.agda` (the gate's
+separate run over all of `SecretTypes.All` is not a witness of these claims
+and is not listed); for Rocq and Lean, the leg's files. Files of secret-types
+at the pin are an `(import …)`, and the git checks confirm each one at its
+commit. A change to a Lintel file of a receipt fails the currency check until
+a new run is recorded. The imported files are fixed by their pinned commit,
+which the git checks read; they change only with a repin, and the pin file
+`scripts/fetch-siblings.sh` is a Lintel input of every leg, so a repin fails
+the currency check too. `scripts/check-trusted-base.sh` checks that the
+receipt's Agda input set and `(trusted-base …)` are exactly what Agda reports
+(`--dependency-graph` and a scan of the prover-supplied modules).
 
 *The template skeletons are not the legs.* `verification/proofs/{agda,coq,lean4,idris2,tlaplus}`
 are RSR template boilerplate. They prove nothing about Lintel, and no workflow
