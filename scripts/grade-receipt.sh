@@ -160,7 +160,7 @@ emit_legs() {
   printf '    :route "re-proved"\n'
   printf '    :route-reason "Agda2Dedukti is an Agda backend pinned to a fork (b026db1, GHC 8.10) and cannot run on Agda %s; no released Dedukti/Lambdapi exporter to Lean 4, and no pinned route to Rocq"\n' "$(proof_agda_pin)"
   printf '    :state "RECONCILED"\n'
-  printf '    :review "statement comparison written by Claude Code; provisional until owner review (estate doctrine 4)"\n'
+  printf '    :review "statement comparison written by Claude Code; reviewed by the owner on 2026-11-16 (estate doctrine 4)"\n'
   printf '    :depends-on "secret-types legs at the sibling pin (record, language, typing, TINI): imported, not restated"\n'
   printf '    (leg :prover "rocq" :checker "coqc" :version "%s" :invocation "coqc -q -Q <sibling>/verification/legs/rocq SecretTypesLeg Lintel.v (in verification/legs/rocq)" :libraries "secret-types Rocq leg only (no standard library)" :axioms "none (Print Assumptions: Closed under the global context)")\n' "$coq"
   printf '    (leg :prover "lean" :checker "lean" :version "%s" :invocation "lake build; lake env lean Axioms.lean (in verification/legs/lean)" :libraries "secret-types Lean leg only (no Mathlib)" :axioms "none (#print axioms: does not depend on any axioms)")\n' "$lean"

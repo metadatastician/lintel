@@ -160,8 +160,7 @@ secret-types pinned at `9fb8430`, its `main`.
 hand in Rocq (Coq 8.18.0) and in Lean (4.24.0, no Mathlib), on top of
 secret-types' own legs at the same pin, with no axioms in either. The statements
 are compared in link:verification/legs/README.adoc[`verification/legs/README.adoc`];
-Claude Code wrote that comparison, and it is provisional until the owner reviews
-it. `bash scripts/check-legs.sh` checks both legs. Not `PWG-1`: no per-commit
+Claude Code wrote that comparison, and the owner reviewed it on 2026-11-16. `bash scripts/check-legs.sh` checks both legs. Not `PWG-1`: no per-commit
 receipt captures each checker's observed result yet.
 L-5 is a set of checked refusals and A-1 an assumption; neither is a theorem, so
 neither is graded. The machine record is

@@ -45,7 +45,7 @@
     :route "re-proved"
     :route-reason "Agda2Dedukti is an Agda backend pinned to a fork (b026db1, GHC 8.10) and cannot run on Agda 2.6.4.3; no released Dedukti/Lambdapi exporter to Lean 4, and no pinned route to Rocq"
     :state "RECONCILED"
-    :review "statement comparison written by Claude Code; provisional until owner review (estate doctrine 4)"
+    :review "statement comparison written by Claude Code; reviewed by the owner on 2026-11-16 (estate doctrine 4)"
     :depends-on "secret-types legs at the sibling pin (record, language, typing, TINI): imported, not restated"
     (leg :prover "rocq" :checker "coqc" :version "8.18.0" :invocation "coqc -q -Q <sibling>/verification/legs/rocq SecretTypesLeg Lintel.v (in verification/legs/rocq)" :libraries "secret-types Rocq leg only (no standard library)" :axioms "none (Print Assumptions: Closed under the global context)")
     (leg :prover "lean" :checker "lean" :version "4.24.0" :invocation "lake build; lake env lean Axioms.lean (in verification/legs/lean)" :libraries "secret-types Lean leg only (no Mathlib)" :axioms "none (#print axioms: does not depend on any axioms)")

@@ -70,8 +70,8 @@ statements, transitively.
 The §2.2 record, with the statement comparison, versions, invocations and
 universe discipline, is
 link:../../verification/legs/README.adoc[`verification/legs/README.adoc`]. Every
-row is `RECONCILED`. Claude Code wrote the comparison, and it is provisional
-until the owner reviews it (estate doctrine 4).
+row is `RECONCILED`. Claude Code wrote the comparison, and the owner
+reviewed it on 2026-11-16 (estate doctrine 4).
 
 *Why not higher.* `PWG-1` needs a receipt per witness and per commit that
 records each checker's observed result (§8.2). The receipt records each leg's
@@ -98,7 +98,5 @@ The pin is `9fb8430`, on that `main`.
 
 == Open
 
-* Owner review of the legs' statement comparison
-  (link:../../verification/legs/README.adoc[`verification/legs/README.adoc`]).
 * A-1 stays an assumption by design: confinement of the link is per role, and a
   proxy–target coalition can join the two fields outside any program.

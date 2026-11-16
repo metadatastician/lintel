@@ -206,7 +206,7 @@ a theorem (§8.1).
 
 * They are re-proofs, not transports. The match between each leg statement
   and its Agda statement rests on the comparison above. Claude Code wrote it,
-  and it is provisional until the owner reviews it (estate doctrine 4). No tool
+  and the owner reviewed it on 2026-11-16 (estate doctrine 4). No tool
   checks it.
 * L-6 rests on secret-types' legs of N-7, as the Agda rests on N-7. Their
   grade bounds this one.
