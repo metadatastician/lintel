@@ -177,10 +177,16 @@ emit_legs() {
 
 # Each counted leg must be RECONCILED in the correspondence record, and
 # the reverse: the grade is derived from the §2.2 record (PROOF-POLICY §8.4).
+# A claim may span several rows; identical rows count once, and rows that
+# disagree on a state both survive and fail the match.
 # On a mismatch, report the differing claim IDs to stderr and exit the script
 # with status 1; matching records produce no output.
 check_leg_records() {
   local rec=verification/legs/README.adoc counted recorded
+  if [[ ! -f "$rec" ]]; then
+    echo "ERROR: counted legs must match RECONCILED states in $rec, which is missing" >&2
+    exit 1
+  fi
   counted="$(claims | awk -F'|' '
     $4=="re-proved" || $4=="transported" {print $1 "|rocq|RECONCILED"}
     $5=="re-proved" || $5=="transported" {print $1 "|lean|RECONCILED"}
@@ -191,7 +197,7 @@ check_leg_records() {
       print trim($2) "|rocq|" trim($3)
       print trim($2) "|lean|" trim($4)
     }
-  ' "$rec" | LC_ALL=C sort)"
+  ' "$rec" | LC_ALL=C sort -u)"
   if [[ "$counted" != "$recorded" ]]; then
     echo "ERROR: counted legs must match RECONCILED states in $rec" >&2
     diff <(printf '%s\n' "$recorded") <(printf '%s\n' "$counted") \

@@ -92,6 +92,10 @@ jobs:
           persist-credentials: false
       - name: Leg diagnostics and correspondence self-test
         run: bash tests/legs-receipt-test.sh
+      - name: Recheck gate self-test (escape hatches, pins, axiom lines)
+        run: bash tests/check-legs-test.sh
+      - name: Receipt legs self-test (input digests, correspondence states)
+        run: bash tests/grade-receipt-legs-test.sh
       - name: Fetch siblings at their pinned commits
         run: bash scripts/fetch-siblings.sh
       - name: Both legs check, with no axioms

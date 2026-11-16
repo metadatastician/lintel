@@ -90,24 +90,33 @@ write_receipt
 grep -qF ':prover "rocq" :checker "coqc" :version "8.19.0"' "$receipt"
 grep -qF ':prover "lean" :checker "lean" :version "4.25.0"' "$receipt"
 check_receipt
-# Cross-check correspondence rows in both directions. Repeated rows are
-# legitimate: a claim may map to more than one theorem.
+# Cross-check correspondence rows in both directions. A claim may map to more
+# than one theorem, so an identical repeated row is legitimate.
 record="$fixture/verification/legs/README.adoc"
 cp "$record" "$fixture/record"
-printf '\n| L-1\n' >> "$record"
+printf '\n| L-1 | RECONCILED | RECONCILED\n' >> "$record"
 check_receipt
+mismatch='ERROR: counted legs must match RECONCILED states'
 for id in L-1 L-2 L-3 L-4 L-6 L-7; do
-  sed "/^| $id$/d" "$fixture/record" > "$record"
-  check 1 'ERROR: claims with a counted leg differ' --check --commit bbbbbbbbbbbb
-  grep -qF "only in grade-receipt.sh: $id" "$fixture/output"
+  sed "/^| $id |/d" "$fixture/record" > "$record"
+  check 1 "$mismatch" --check --commit bbbbbbbbbbbb
+  grep -qF "only in grade-receipt.sh: $id|rocq|RECONCILED" "$fixture/output"
+  grep -qF "only in grade-receipt.sh: $id|lean|RECONCILED" "$fixture/output"
+done
+# A row without its states, or with a state other than RECONCILED, is refused,
+# and so is a repeated row that disagrees with the first.
+for row in '| L-1' '| L-1 | RECONCILED | PENDING' '| L-1 | PENDING | RECONCILED'; do
+  cp "$fixture/record" "$record"
+  printf '\n%s\n' "$row" >> "$record"
+  check 1 "$mismatch" --check --commit bbbbbbbbbbbb
 done
 for id in L-5 A-1 L-99; do
   cp "$fixture/record" "$record"
-  printf '\n| %s\n' "$id" >> "$record"
-  check 1 'ERROR: claims with a counted leg differ' --check --commit bbbbbbbbbbbb
-  grep -qF "only in verification/legs/README.adoc: $id" "$fixture/output"
+  printf '\n| %s | RECONCILED | RECONCILED\n' "$id" >> "$record"
+  check 1 "$mismatch" --check --commit bbbbbbbbbbbb
+  grep -qF "only in verification/legs/README.adoc: $id|rocq|RECONCILED" "$fixture/output"
 done
 rm "$record"
-check 1 'ERROR: claims with a counted leg differ' --check --commit bbbbbbbbbbbb
+check 1 "$mismatch" --check --commit bbbbbbbbbbbb
 cp "$fixture/record" "$record"
 check_receipt

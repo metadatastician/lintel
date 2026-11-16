@@ -21,7 +21,7 @@
 --   link-writable            and it can be written there, so the refusal is
 --                            not a refusal of everything
 --
--- Pin: hyperpolymath/secret-types 45046c2c0f92ddae2ff73c8c05555bed419f46ad
+-- Pin: hyperpolymath/secret-types 9fb8430c3aa2d1d89016619722dc0a2631df0566
 --   SecretTypes.Vars, SecretTypes.Lang, SecretTypes.Typing.Generic
 --   (scripts/fetch-siblings.sh)
 module Lintel.Composition where

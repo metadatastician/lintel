@@ -153,7 +153,7 @@ runs `scripts/fetch-siblings.sh` then `scripts/check.sh`), and so does the
 `Agda proofs` workflow: Agda 2.6.4.3 with the flags of `scripts/proof-flags.sh`,
 the canonical `--safe --without-K --cubical-compatible` (`PROOF-POLICY.adoc`
 §2.1) and `--no-libraries --ignore-interfaces --double-check -W error` besides,
-secret-types pinned at `45046c2`.
+secret-types pinned at `9fb8430`, its `main`.
 
 *Grade.* The PROVEN claims (L-1 to L-4, L-6, L-7) are at Proof Witness Grade
 **`PWG-2ii`** (`PROOF-POLICY.adoc` §8) and no higher. Each is also re-proved by

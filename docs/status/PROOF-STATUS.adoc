@@ -25,7 +25,7 @@ sibling, under the flags of `scripts/proof-flags.sh`:
 flags. `scripts/check.sh` checks, in order:
 
 . coverage: every module under `src/Lintel` is imported by `Lintel.All`;
-. the sibling at its pin, `hyperpolymath/secret-types` `45046c2`, all of
+. the sibling at its pin, `hyperpolymath/secret-types` `9fb8430` (its `main`), all of
   `SecretTypes.All` under the same flags;
 . `Lintel.All`;
 . the 5 positive controls under `tests/accept`;
@@ -92,17 +92,13 @@ through `⊒-open`. In `Lintel.Composition`, `writes-flow` matched the typing
 derivation and the `Writes` derivation together on one `Cmd` index. It now reads
 `Writes` into `Writes′`, the same relation computed by recursion on the command,
 and recurses on the typing derivation alone. `Writes`, the relation L-7 is stated
-over, is unchanged, as is every statement. The sibling needed the matching change,
-hyperpolymath/secret-types#26 (`just-injective`). That, and secret-types' legs
-(hyperpolymath/secret-types#29, stacked on #26), are why the pin is a branch
-commit, `45046c2`, until they merge.
+over, is unchanged, as is every statement. The sibling needed the matching change, which reached secret-types `main` as
+hyperpolymath/secret-types#30, with its legs as hyperpolymath/secret-types#34.
+The pin is `9fb8430`, on that `main`.
 
 == Open
 
 * Owner review of the legs' statement comparison
   (link:../../verification/legs/README.adoc[`verification/legs/README.adoc`]).
-* Re-pin secret-types to its `main` once hyperpolymath/secret-types#26 and
-  hyperpolymath/secret-types#29 (its legs) merge. The squash commits will differ
-  from `45046c2`.
 * A-1 stays an assumption by design: confinement of the link is per role, and a
   proxy–target coalition can join the two fields outside any program.
