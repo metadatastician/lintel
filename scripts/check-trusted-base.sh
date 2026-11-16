@@ -40,6 +40,12 @@ work="$(mktemp -d)"; trap 'rm -rf "$work"' EXIT
 # lists; the refusal fixtures must be refused (exit 3), never passed.
 for f in tests/trusted-base/*.txt; do
   name="$(basename -- "$f" .txt)"
+  # The CRLF control is stored with LF line ends (the estate .gitattributes
+  # normalises *.txt), so its carriage returns are added here.
+  if [[ "$name" == CarriageReturn ]]; then
+    sed 's/$/\r/' "$f" > "$work/CarriageReturn.crlf"; f="$work/CarriageReturn.crlf"
+    grep -q $'\r' "$f" || { echo 'FAIL: could not build the CRLF control' >&2; exit 1; }
+  fi
   set +e; awk -v "module=Fixture.$name" -f "$scan" "$f" > "$work/$name.out" 2> "$work/$name.err"; rc=$?; set -e
   if [[ -f "tests/trusted-base/$name.expected" ]]; then
     if (( rc != 0 )) || ! diff -u "tests/trusted-base/$name.expected" "$work/$name.out"; then
@@ -49,6 +55,12 @@ for f in tests/trusted-base/*.txt; do
   elif (( rc != 3 )); then
     cat "$work/$name.out" >&2
     echo "FAIL: scanner control $name was not refused (rc=$rc)" >&2; exit 1
+  fi
+  # Its postulate is unbound too, so it must be refused for the carriage
+  # return, or the control would pass without testing that.
+  if [[ "$name" == CarriageReturn ]] && ! grep -q 'carriage return' "$work/$name.err"; then
+    cat "$work/$name.err" >&2
+    echo 'FAIL: scanner control CarriageReturn was refused, but not for its carriage returns' >&2; exit 1
   fi
 done
 echo "PASS: scanner controls ($(ls tests/trusted-base/*.txt | wc -l | tr -d ' ') fixtures)"
