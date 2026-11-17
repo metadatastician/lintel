@@ -6,41 +6,44 @@ fixture="$(mktemp -d)"
 trap 'rm -rf "$fixture"' EXIT
 mkdir -p "$fixture/scripts" "$fixture/src/Lintel" "$fixture/tests/accept" "$fixture/tests/reject" "$fixture/bin"
 cp "$root/scripts/"{check-legs,grade-receipt,proof-flags,fetch-siblings}.sh "$fixture/scripts/"
-cp "$root/README.adoc" "$fixture/"
-mkdir -p "$fixture/verification/receipts"
+mkdir -p "$fixture/docs/status" "$fixture/verification"
+cp "$root/docs/status/PROOF-STATUS.adoc" "$fixture/docs/status/"
 cp -R "$root/verification/legs" "$fixture/verification/"
-cp "$root/verification/receipts/agda-pwg_praxis.deed" "$fixture/verification/receipts/"
 sibling="$fixture/_build/dependencies/secret-types"
 mkdir -p "$sibling/verification/legs/rocq" "$sibling/verification/legs/lean/SecretTypes"
 touch "$sibling/verification/legs/rocq/SecretTypes.v" "$sibling/verification/legs/lean/SecretTypes/Generic.lean" \
   "$sibling/verification/legs/lean/lean-toolchain" "$sibling/verification/legs/lean/lakefile.toml"
 
-# The committed receipt agrees with README.adoc and the legs record; a leg
-# whose correspondence is not RECONCILED, or a claim missing from either side,
-# fails the cross-check.
-bash "$fixture/scripts/grade-receipt.sh" --cross-check > /dev/null
-echo "PASS: the receipt's claims and legs match the human records"
+# The receipt's cross-checks run in the shared generator (standards'
+# scripts/proof-receipt.sh, tested there).  What is Lintel's are the hooks they
+# read: the claim ids of the proof-status table and the claims whose two legs
+# the legs record lists as RECONCILED.  Sourcing grade-receipt.sh defines them
+# and runs nothing.
+hooks() { (cd "$fixture" && . scripts/grade-receipt.sh && "$@"); }
+theorems="$(hooks receipt_claims | awk -F'|' '$3=="theorem"{print $1}' | sort | paste -sd' ')"
+[ "$(hooks receipt_recorded_legs | sort | paste -sd' ')" = "$theorems" ]
+echo "PASS: the legs record lists both legs RECONCILED for exactly the theorems ($theorems)"
+[ "$(hooks receipt_status_ids | sort | paste -sd' ')" = "$(hooks receipt_claims | cut -d'|' -f1 | sort | paste -sd' ')" ]
+echo "PASS: the proof-status table names exactly the claims of the ledger"
 for leg in rocq lean; do
   if [ "$leg" = rocq ]; then
     sed 's/| L-1 | RECONCILED | RECONCILED/| L-1 | PENDING | RECONCILED/' "$root/verification/legs/README.adoc" > "$fixture/verification/legs/README.adoc"
   else
     sed 's/| L-1 | RECONCILED | RECONCILED/| L-1 | RECONCILED | PENDING/' "$root/verification/legs/README.adoc" > "$fixture/verification/legs/README.adoc"
   fi
-  status=0
-  bash "$fixture/scripts/grade-receipt.sh" --cross-check > "$fixture/output" 2>&1 || status=$?
-  [ "$status" -eq 1 ]
-  grep -q "the receipt's legs and their states must be the rows" "$fixture/output"
-  grep -q "L-1|$leg|PENDING" "$fixture/output"
-  echo "PASS: a pending $leg correspondence fails the receipt cross-check"
+  ! hooks receipt_recorded_legs | grep -qx 'L-1'
+  echo "PASS: a pending $leg correspondence drops L-1 from the recorded legs"
 done
 cp "$root/verification/legs/README.adoc" "$fixture/verification/legs/README.adoc"
-sed 's/^| L-7$/| L-8/' "$root/README.adoc" > "$fixture/README.adoc"
-status=0
-bash "$fixture/scripts/grade-receipt.sh" --cross-check > "$fixture/output" 2>&1 || status=$?
-[ "$status" -eq 1 ]
-grep -q 'claim ids differ between the receipt and README.adoc' "$fixture/output"
-echo "PASS: a claim missing from the receipt fails the cross-check"
-cp "$root/README.adoc" "$fixture/"
+printf '\n| L-1 | RECONCILED | PENDING\n' >> "$fixture/verification/legs/README.adoc"
+! hooks receipt_recorded_legs | grep -qx 'L-1'
+echo "PASS: a second row for L-1 that disagrees drops it too"
+cp "$root/verification/legs/README.adoc" "$fixture/verification/legs/README.adoc"
+rm "$fixture/verification/legs/README.adoc"
+status=0; hooks receipt_recorded_legs > /dev/null 2>&1 || status=$?
+[ "$status" -eq 3 ]
+echo "PASS: a missing legs record is a hook refusal, not an empty list"
+cp "$root/verification/legs/README.adoc" "$fixture/verification/legs/README.adoc"
 
 # Fake checkers exercise orchestration and diagnostics, not proof correctness.
 cat > "$fixture/bin/coqc" <<'COQ'

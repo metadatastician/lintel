@@ -55,3 +55,17 @@ proof_agda_pin() {
 proof_agda_provenance() {
   printf '%s\n' 'Debian 13 agda-bin=2.6.4.3-1+b2'
 }
+
+# The prover's trusted base (PROOF-POLICY §8.4): every postulate in a
+# prover-supplied module of the import cone of src/Lintel/All.agda, as
+# module|name|binding.  scripts/check-trusted-base.sh checks that this exact
+# list is what the cone holds; the receipt writes it as (trusted-base ...).
+# A prover pin bump can change it; the gate then fails until this list is
+# updated and the receipt is earned again.
+proof_trusted_base() {
+  printf '%s\n' \
+    'Agda.Primitive|Level|BUILTIN LEVEL' \
+    'Agda.Primitive|lzero|BUILTIN LEVELZERO' \
+    'Agda.Primitive|lsuc|BUILTIN LEVELSUC' \
+    'Agda.Primitive|_⊔_|BUILTIN LEVELMAX'
+}

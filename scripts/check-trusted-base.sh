@@ -14,27 +14,27 @@
 #      stops finding postulates fails here first;
 #   2. asks Agda for the cone (--dependency-graph, under the gate's flags), and
 #      requires the receipt's Agda input set to be exactly that cone: the
-#      Lintel modules in its (inputs-manifest ...), the secret-types modules in
-#      its (import ...);
+#      Lintel modules of `grade-receipt.sh --inputs agda`, and the
+#      secret-types modules of `grade-receipt.sh --sibling-cone` (its imports);
 #   3. scans every prover-supplied module of the cone for postulates;
-#   4. requires the result to be exactly the receipt's (trusted-base ...).
+#   4. requires the result to be exactly proof_trusted_base
+#      (scripts/proof-flags.sh), which the receipt writes as (trusted-base ...).
 # Any difference fails.  A prover pin bump that changes the list fails here
-# until the receipt source lists the new set and the receipt is earned again.
+# until proof_trusted_base is updated and the receipt is earned again.
 #
-# Needs agda (the pinned version) and the secret-types checkout
-# (scripts/fetch-siblings.sh).  Reads the receipt's text, so it runs without bun.
+# Needs agda (the pinned version), the secret-types checkout
+# (scripts/fetch-siblings.sh) and the pinned standards files
+# (scripts/grade-receipt.sh --fetch-standards).
 set -euo pipefail
 cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.."
 export LC_ALL=C
 . scripts/proof-flags.sh
 prover="${AGDA:-agda}"
 st="${SECRET_TYPES_SRC:-${DEPENDENCIES_DIR:-_build/dependencies}/secret-types/src}"
-receipt=verification/receipts/agda-pwg_praxis.deed
 root=src/Lintel/All.agda
 scan=scripts/scan-agda-postulates.awk
 work="$(mktemp -d)"; trap 'rm -rf "$work"' EXIT
 [[ -d "$st" ]] || { echo "ERROR: secret-types sources not found at $st (run scripts/fetch-siblings.sh)" >&2; exit 1; }
-[[ -f "$receipt" ]] || { echo "ERROR: $receipt is missing" >&2; exit 1; }
 
 # 1. Controls.  Positive and comment-only fixtures must give their expected
 # lists; the refusal fixtures must be refused (exit 3), never passed.
@@ -73,22 +73,11 @@ mapfile -t cone < <(sed -n 's/.*label="\([^"]*\)".*/\1/p' "$work/cone.dot" | sor
 (( ${#cone[@]} > 0 )) || { echo 'FAIL: empty dependency graph' >&2; exit 1; }
 agda_dir="$("$prover" --print-agda-dir)"
 
-# The receipt's Agda input set: the .agda files of the first current Agda
-# receipt, home files and imported files apart.  The writer gives every claim
-# the same Agda receipts, so the first is every one.
-awk '
-  /^    \(leg :prover agda / { inleg = 1; next }
-  inleg && /^    \(leg / { exit }
-  inleg && /:state current/ { cur = 1 }
-  cur && /\(import :repository / { where = "import" }
-  cur && /\(file :path "[^"]*\.agda"/ {
-    p = $0; sub(/.*\(file :path "/, "", p); sub(/".*/, "", p)
-    print (where == "import" ? "import " : "home ") p
-  }
-  cur && /\(axioms/ { exit }
-' "$receipt" > "$work/receipt-inputs"
-grep '^home ' "$work/receipt-inputs" | cut -d' ' -f2 | sort > "$work/scan-home"
-grep '^import ' "$work/receipt-inputs" | cut -d' ' -f2 | sort > "$work/scan-import"
+# The receipt's Agda input set, from the hooks the receipt is written with.
+bash scripts/grade-receipt.sh --inputs agda | grep -E '\.agda$' | sort > "$work/scan-home" \
+  || { echo 'FAIL: grade-receipt.sh --inputs agda failed' >&2; exit 1; }
+bash scripts/grade-receipt.sh --sibling-cone | sort > "$work/scan-import" \
+  || { echo 'FAIL: grade-receipt.sh --sibling-cone failed' >&2; exit 1; }
 : > "$work/cone-home"; : > "$work/cone-import"
 for m in "${cone[@]}"; do
   rel="${m//.//}.agda"
@@ -118,13 +107,11 @@ for m in "${cone[@]}"; do
   awk -v "module=$m" -f "$scan" "$path" >> "$work/found"
 done
 
-# 4. Compare with the receipt's (trusted-base ...).
+# 4. Compare with proof_trusted_base, the list the receipt writes.
 sort -u "$work/found" > "$work/found.sorted"
-sed -n 's/^ *(primitive :prover agda :module "\([^"]*\)" :name "\([^"]*\)" :binding "\([^"]*\)").*/\1|\2|\3/p' "$receipt" \
-  | sort -u > "$work/declared.sorted"
-[[ -s "$work/declared.sorted" ]] || { echo "FAIL: $receipt lists no (primitive :prover agda ...)" >&2; exit 1; }
+proof_trusted_base | sort -u > "$work/declared.sorted"
 if ! diff -u "$work/declared.sorted" "$work/found.sorted"; then
-  echo "FAIL: the prover-supplied postulates of the cone differ from the (trusted-base ...) of $receipt" >&2
+  echo 'FAIL: the prover-supplied postulates of the cone differ from proof_trusted_base (scripts/proof-flags.sh)' >&2
   exit 1
 fi
-echo "PASS: trusted base: $(wc -l < "$work/found.sorted" | tr -d ' ') prover postulates in $supplied prover-supplied modules of the cone, each BUILTIN-bound and listed in the receipt; no other postulate"
+echo "PASS: trusted base: $(wc -l < "$work/found.sorted" | tr -d ' ') prover postulates in $supplied prover-supplied modules of the cone, each BUILTIN-bound and listed; no other postulate"

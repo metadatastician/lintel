@@ -213,6 +213,6 @@ a theorem (§8.1).
   `(import …)`, so the receipt of L-6 covers them.
 * `foundation_diverse` (§8.3) stays false. Agda, Rocq and Lean are all
   dependent type theories.
-* The grade the receipt derives, `PWG-1`, counts these legs because their
-  state is `RECONCILED`. That state rests on the comparison above, so the
-  grade is provisional with it.
+* The receipt counts these legs toward the grade because their state is
+  `RECONCILED`. That state rests on the comparison above, so any grade the
+  receipt derives is provisional with it.

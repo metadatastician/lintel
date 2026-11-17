@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: CC-BY-SA-4.0
 // Copyright (c) Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
 = Proof Status — Lintel
-:revdate: 2026-11-16
+:revdate: 2026-11-17
 
 This is Lintel's proof-status file in the sense of
 `standards/3-practice/PROOF-POLICY.adoc` §8.5: the per-claim record of status
@@ -9,13 +9,14 @@ tokens, Proof Witness Grades (PWG) and recheck legs. The claims themselves, with
 their statements and artefacts, are the table in link:../../README.adoc[README]
 (L-1 to L-7, A-1). The machine copy is
 link:../../verification/receipts/agda-pwg_praxis.deed[`verification/receipts/agda-pwg_praxis.deed`],
-a §8.5.1 proof receipt. The standard's shared writer (`scripts/proof-receipt.js`)
-writes it from link:../../verification/receipts/proof-receipt.toml[its source],
-deriving every manifest, digest, import and grade from git.
-`scripts/grade-receipt.sh --check` (the `receipt` job of the `Agda proofs`
-workflow) runs the pinned reader, the git checks of §8.5.3 and a currency
-check, and fails if the receipt's claims or legs drift from the README or the
-legs record.
+a §8.5.1 proof receipt. `scripts/grade-receipt.sh` holds Lintel's ledgers and
+hooks and writes it with the standard's shared generator
+(`scripts/proof-receipt.sh`, pinned with the reader, the reference digest and the
+git checker at one standards commit), deriving every manifest, digest, import and
+grade from git. Its `--check` (the `receipt` job of the `Agda proofs`
+workflow) runs the pinned reader, the git checks of §8.5.3 and a currency check,
+and fails if the receipt's claims or legs drift from this table or the legs
+record.
 
 Until 2026-11-09 this file was the RSR template's placeholder ("0% proven", Idris
 ABI rows). That never described this repository. The README's claim table was
@@ -30,7 +31,7 @@ sibling, under the flags of `scripts/proof-flags.sh`:
 flags. `scripts/check.sh` checks, in order:
 
 . coverage: every module under `src/Lintel` is imported by `Lintel.All`;
-. the sibling at its pin, `hyperpolymath/secret-types` `45046c2`, all of
+. the sibling at its pin, `hyperpolymath/secret-types` `9fb8430` (its `main`), all of
   `SecretTypes.All` under the same flags;
 . `Lintel.All`;
 . the 5 positive controls under `tests/accept`;
@@ -51,13 +52,13 @@ what happens without it.
 |===
 | Claim | Token | PWG | Rocq leg | Lean leg | Note
 
-| L-1 | proven | `PWG-1` | re-proved | re-proved | `Lintel.Lattice`
-| L-2 | proven | `PWG-1` | re-proved | re-proved | `Lintel.Lattice`
-| L-3 | proven | `PWG-1` | re-proved | re-proved | `Lintel.Lattice`, packed as `Lintel.Instance.reader-sets`
-| L-4 | proven | `PWG-1` | re-proved | re-proved | `Lintel.Lattice`
+| L-1 | proven | ungraded until the next run | re-proved | re-proved | `Lintel.Lattice`
+| L-2 | proven | ungraded until the next run | re-proved | re-proved | `Lintel.Lattice`
+| L-3 | proven | ungraded until the next run | re-proved | re-proved | `Lintel.Lattice`, packed as `Lintel.Instance.reader-sets`
+| L-4 | proven | ungraded until the next run | re-proved | re-proved | `Lintel.Lattice`
 | L-5 | tested-only | n/a | n/a | n/a | Checked refusals and acceptances; not a theorem (§8.1)
-| L-6 | proven | `PWG-1` | re-proved | re-proved | `Lintel.Instance`; rests on secret-types N-7, whose files at the pin each run checks (the receipt's imports)
-| L-7 | proven | `PWG-1` | re-proved | re-proved | `Lintel.Composition`
+| L-6 | proven | ungraded until the next run | re-proved | re-proved | `Lintel.Instance`; rests on secret-types N-7, whose files at the pin each run checks (the receipt's imports)
+| L-7 | proven | ungraded until the next run | re-proved | re-proved | `Lintel.Composition`
 | A-1 | argued | n/a | n/a | n/a | An assumption; its gap is proved (`collusion-gap`)
 |===
 
@@ -79,13 +80,17 @@ link:../../verification/legs/README.adoc[`verification/legs/README.adoc`]. Every
 row is `RECONCILED`. Claude Code wrote the comparison, and it is provisional
 until the owner reviews it (estate doctrine 4).
 
-*The receipts.* `PWG-1` needs a current receipt of a pinned, headless checker
-run for every witness, describing the receipt's `:source-commit` (§8.2,
-§8.5.2). Each leg has one: run
+*The receipts.* A grade is derived from the receipt (§8.2, §8.4). `PWG-1` needs
+a current receipt, for every witness, of a pinned, headless and isolated checker
+run that describes the receipt's `:source-commit`; isolated means in an image
+pinned by its digest (owner ruling 2026-11-16). The last runs,
 https://github.com/metadatastician/lintel/actions/runs/42740256887[42740256887]
-of the `Agda proofs` workflow, on `89ceac3` on `main`. Its proof gate and its
-`legs` job passed; only the old-shape receipt check of that run failed, and
-this receipt replaces it. Each receipt lists the files of its graded
+on `89ceac3`, checked the inputs at the earlier secret-types pin, and its legs ran
+on a bare runner, so they support `PWG-2ii` at most; the re-pin to `9fb8430`
+superseded them, and the receipt grades nothing until the first run on `main`
+after it is recorded. That run checks the Agda in
+`debian:13-slim@sha256:a29215f6…` and both legs in
+`ubuntu:24.04@sha256:73b99939…`. Each receipt lists the files of its graded
 invocation: for Agda, the import cone of `src/Lintel/All.agda` (the gate's
 separate run over all of `SecretTypes.All` is not a witness of these claims
 and is not listed); for Rocq and Lean, the leg's files. Files of secret-types
@@ -111,16 +116,13 @@ derivation and the `Writes` derivation together on one `Cmd` index. It now reads
 `Writes` into `Writes′`, the same relation computed by recursion on the command,
 and recurses on the typing derivation alone. `Writes`, the relation L-7 is stated
 over, is unchanged, as is every statement. The sibling needed the matching change,
-hyperpolymath/secret-types#26 (`just-injective`). That, and secret-types' legs
-(hyperpolymath/secret-types#29, stacked on #26), are why the pin is a branch
-commit, `45046c2`, until they merge.
+which reached secret-types `main` as hyperpolymath/secret-types#30, with its legs
+as hyperpolymath/secret-types#34. The pin is `9fb8430`, on that `main`
+(re-pin from metadatastician/lintel#27).
 
 == Open
 
 * Owner review of the legs' statement comparison
   (link:../../verification/legs/README.adoc[`verification/legs/README.adoc`]).
-* Re-pin secret-types to its `main` once hyperpolymath/secret-types#26 and
-  hyperpolymath/secret-types#29 (its legs) merge. The squash commits will differ
-  from `45046c2`.
 * A-1 stays an assumption by design: confinement of the link is per role, and a
   proxy–target coalition can join the two fields outside any program.
