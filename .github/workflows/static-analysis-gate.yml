@@ -158,11 +158,11 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
-      - name: Setup Elixir 1.19.4 / OTP 28.3 for Hypatia scanner
+      - name: Setup Elixir 1.19.4 / OTP 27.3.4.19 for Hypatia scanner
         uses: erlef/setup-beam@54075bcc5e249e4758d363f27d099f55d843f124 # v1.24.1
         with:
           elixir-version: '1.19.4'
-          otp-version: '28.3'
+          otp-version: '27.3.4.19'
 
       - name: Cache pinned Hypatia build
         id: cache-hypatia
@@ -172,7 +172,7 @@ jobs:
             ~/hypatia
             ~/.hex
             ~/.mix
-          key: hypatia-escript-${{ runner.os }}-otp28-elx1194-be98f74ce93df200752f3798efa1305bfa3e0e10
+          key: hypatia-escript-${{ runner.os }}-otp27.3.4.19-elx1194-6693f9aed8e4383f78a3d01b600b32663bf7a45c
 
       - name: Clone and build pinned Hypatia
         id: build
@@ -182,7 +182,7 @@ jobs:
             rm -rf "$HOME/hypatia"
             git init -q "$HOME/hypatia"
             git -C "$HOME/hypatia" remote add origin https://github.com/hyperpolymath/hypatia.git
-            git -C "$HOME/hypatia" fetch -q --depth 1 origin be98f74ce93df200752f3798efa1305bfa3e0e10
+            git -C "$HOME/hypatia" fetch -q --depth 1 origin 6693f9aed8e4383f78a3d01b600b32663bf7a45c
             git -C "$HOME/hypatia" checkout -q FETCH_HEAD
             (cd "$HOME/hypatia" && mix local.hex --force && mix local.rebar --force && mix deps.get && MIX_NO_PUBSUB=1 mix escript.build)
           fi
@@ -199,11 +199,14 @@ jobs:
 
           # An exit above 128 means a signal killed the process, not that the
           # scanner reported a failure. Hypatia loads no NIFs, so a SIGSEGV
-          # (139) is a crash of the Erlang VM itself: a garbage-collector
-          # fault (sweep_off_heap) that reproduces on OTP 27.3.4.19, 28.3.3
-          # and 28.5.0.8, depending on input. Name the runtime so the failure
-          # is never read as a fault in this repository or in the scanner's
-          # rules. The job still fails: the scan did not run.
+          # (139) is a crash of the Erlang VM. The known case: before
+          # hyperpolymath/hypatia#1062, the compiler's in-place binary
+          # append in Hypatia.Rules.PinSites corrupted the VM's
+          # writable-binary list, and the GC crashed in sweep_off_heap.
+          # Depending on input, that happened on OTP 27.3.4.19, 28.3.3 and
+          # 28.5.0.8. The pin above includes the fix. Name the runtime so a
+          # recurrence is never read as a finding about this repository.
+          # The job still fails: the scan did not run.
           if [ "$HYP_EXIT" -gt 128 ]; then
             SIG="$(kill -l "$((HYP_EXIT - 128))" 2>/dev/null || echo "$((HYP_EXIT - 128))")"
             OTP="$(erl -noshell -eval 'io:format("~s (erts ~s)", [erlang:system_info(otp_release), erlang:system_info(version)]), halt().' 2>/dev/null || echo unknown)"
