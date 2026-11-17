@@ -197,6 +197,26 @@ jobs:
           HYP_EXIT=$?
           set -e
 
+          # An exit above 128 means a signal killed the process, not that the
+          # scanner reported a failure. Hypatia loads no NIFs, so a SIGSEGV
+          # (139) is a crash of the Erlang VM itself: a garbage-collector
+          # fault (sweep_off_heap) that reproduces on OTP 27.3.4.19, 28.3.3
+          # and 28.5.0.8, depending on input. Name the runtime so the failure
+          # is never read as a fault in this repository or in the scanner's
+          # rules. The job still fails: the scan did not run.
+          if [ "$HYP_EXIT" -gt 128 ]; then
+            SIG="$(kill -l "$((HYP_EXIT - 128))" 2>/dev/null || echo "$((HYP_EXIT - 128))")"
+            OTP="$(erl -noshell -eval 'io:format("~s (erts ~s)", [erlang:system_info(otp_release), erlang:system_info(version)]), halt().' 2>/dev/null || echo unknown)"
+            echo "::error::Hypatia did not run: the Erlang VM was killed by SIG${SIG} (exit ${HYP_EXIT}) on OTP ${OTP}. This is a runtime crash, not a finding about this repository and not a scanner rule failure."
+            {
+              echo "## Hypatia scan: Erlang VM crash"
+              echo ""
+              echo "- Signal: SIG${SIG} (exit ${HYP_EXIT})"
+              echo "- Runtime: OTP ${OTP}"
+              echo "- No findings were produced. Re-running on the same input and runtime crashes again."
+            } >> "$GITHUB_STEP_SUMMARY"
+            exit "$HYP_EXIT"
+          fi
           if [ "$HYP_EXIT" -ne 0 ]; then
             echo "::error::Hypatia scanner execution failed with exit ${HYP_EXIT}"
             exit "$HYP_EXIT"
