@@ -11,7 +11,7 @@
     :repository "metadatastician/lintel"
     :repo-uuid #u5"github.com/metadatastician/lintel"
     :kind "theory"
-    :source-commit "01bf2bf14192")
+    :source-commit "d7bdc21a1264")
   (prover
     :tool "agda"
     :version "2.6.4.3"
@@ -50,12 +50,12 @@
     (leg :prover "rocq" :checker "coqc" :version "8.18.0" :invocation "coqc -q -Q <sibling>/verification/legs/rocq SecretTypesLeg Lintel.v (in verification/legs/rocq)" :libraries "secret-types Rocq leg only (no standard library)" :axioms "none (Print Assumptions: Closed under the global context)")
     (leg :prover "lean" :checker "lean" :version "4.24.0" :invocation "lake build; lake env lean Axioms.lean (in verification/legs/lean)" :libraries "secret-types Lean leg only (no Mathlib)" :axioms "none (#print axioms: does not depend on any axioms)")
     (inputs
-      (input :path "verification/legs/rocq/Lintel.v" :sha256 "72fefcaa4af7facf71ebd7c9891fd55e1d388a51743f1ae3bf2e2bff1d4d218c")
+      (input :path "verification/legs/rocq/Lintel.v" :sha256 "47eb36dd5699873ee6fca09c05a2e0548cdf7dcecd094f176af33a1c49f5bc83")
       (input :path "verification/legs/lean/Axioms.lean" :sha256 "fbc9517313f1d519b393b3af2dfaf23a3570b03d0d63eec672d12578d0d94cb6")
       (input :path "verification/legs/lean/Lintel.lean" :sha256 "40ebf309ee76002da974837a9accfbe4de25d4e7faaa30305d33b01bafc93a9e")
       (input :path "verification/legs/lean/Lintel/Composition.lean" :sha256 "03d3fe71419c3f0340c200454248301e990f9fc540e43798753eee42e93d196a")
-      (input :path "verification/legs/lean/Lintel/Instance.lean" :sha256 "643fd533fd646e5df59c72ab593d13b137ae233bcd1e98bf4e56462dd785c0e5")
-      (input :path "verification/legs/lean/Lintel/Lattice.lean" :sha256 "0b2134c82b60bd0f4332a432e8b1c0eff00c0cc55b2a1f6ebca5abb419503519")
+      (input :path "verification/legs/lean/Lintel/Instance.lean" :sha256 "6810fc39e7f67c02c3df828d015924c1523813aade5ec452afe945bd452d3a82")
+      (input :path "verification/legs/lean/Lintel/Lattice.lean" :sha256 "4323366527ae77d6aa7794bcd380e87f68c35b585191d6f2faac1e2a7e2fcd3a")
       (input :path "verification/legs/lean/lakefile.toml" :sha256 "9f3404bcc6575c35111450ac45e86bdac94ea7e034b05e4bc5e2032ca5392f8b")
       (input :path "verification/legs/lean/lean-toolchain" :sha256 "387019dd5f6d8213249f99bfe1bd9f346678bf0d4612938c1e7feae386665335")
       (input :repository "hyperpolymath/secret-types" :path "verification/legs/rocq/SecretTypes.v" :sha256 "acffaa9b4884b46c61fae6f2c91a34e7005b5d4b6158ebcc83bde25bc573b75e")
