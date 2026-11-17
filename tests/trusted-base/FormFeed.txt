@@ -1,0 +1,7 @@
+-- SPDX-License-Identifier: MPL-2.0
+-- Refusal control: a form feed between `postulate` and the name.  Agda reads
+-- it as whitespace, so the scan must refuse the file or it would miss Hidden.
+-- The form feed is put in by scripts/check-trusted-base.sh (the estate scan
+-- refuses control bytes in the tree), in place of the space on the last line.
+module Fixture.FormFeed where
+postulate Hidden : Set

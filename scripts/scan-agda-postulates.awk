@@ -18,7 +18,8 @@
 #     Any other dash run (for example an operator such as -->) stays code, so
 #     a doubtful case can only find MORE postulates, never fewer.
 # It refuses (exit 3) what it does not lex: a string literal, a character
-# literal, a tab, a carriage return, a nested module, explicit layout braces
+# literal, a tab, a carriage return, a form feed or any other control byte,
+# a nested module, explicit layout braces
 # after postulate, a declaration with no type signature, and a postulate with
 # no BUILTIN binding.  A refusal is a
 # gate failure: extend the scanner, never weaken it.
@@ -43,6 +44,11 @@ END {
   if (module == "") { print "scan-agda-postulates.awk: set -v module=NAME" > "/dev/stderr"; exit 2 }
   if (index(src, "\t")) refuse("a tab character")
   if (index(src, "\r")) refuse("a carriage return (CRLF line ends are not lexed)")
+  # Agda reads a form feed (and other layout controls) as whitespace, so one
+  # between `postulate` and a name would hide the name from the scan.  No other
+  # C0 control byte, nor DEL, is lexed: each is refused.
+  if (index(src, "\f")) refuse("a form feed")
+  if (match(src, /[\001-\010\013-\037\177]/)) refuse("a control character")
   n = length(src); out = ""; i = 1; npragma = 0
   while (i <= n) {
     c = substr(src, i, 1); c2 = substr(src, i, 2); c3 = substr(src, i, 3)

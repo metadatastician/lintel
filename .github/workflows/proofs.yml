@@ -20,6 +20,12 @@ concurrency:
 env:
   LANG: C.UTF-8
   LC_ALL: C.UTF-8
+# A job with a container: runs its steps with sh, not bash, unless told; the
+# images here (Debian 13, Ubuntu 24.04) both ship bash, and steps use set -o
+# pipefail.  GitHub runs bash as `bash --noprofile --norc -eo pipefail {0}`.
+defaults:
+  run:
+    shell: bash
 jobs:
   proofs:
     name: Lattice laws, pinned sibling, controls and expected rejections
