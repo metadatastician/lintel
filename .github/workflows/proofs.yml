@@ -69,9 +69,9 @@ jobs:
       # PWG-1.  A one-entry matrix would rename this job's check.
       - name: Record image-bound run rows in the job log
         run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
           CHECKER_IMAGE="$(sed -n '/^  proofs:$/,/^  [a-z][a-z-]*:$/{s/^    container: *//p}' .github/workflows/proofs.yml)"
           [[ "$CHECKER_IMAGE" == *@sha256:* ]] || { echo "no pinned container image for the proofs job" >&2; exit 1; }
-          bash scripts/grade-receipt.sh --run-row agda|
           bash scripts/grade-receipt.sh --run-row agda \
             --run "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/attempts/$GITHUB_RUN_ATTEMPT" \
             --commit "$(git rev-parse HEAD)" --checker "$(agda --version)" \
@@ -124,9 +124,9 @@ jobs:
       # As in the proofs job: the image is read from this job's container line.
       - name: Record image-bound run rows in the job log
         run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
           CHECKER_IMAGE="$(sed -n '/^  legs:$/,/^  [a-z][a-z-]*:$/{s/^    container: *//p}' .github/workflows/proofs.yml)"
           [[ "$CHECKER_IMAGE" == *@sha256:* ]] || { echo "no pinned container image for the legs job" >&2; exit 1; }
-          for prover in rocq lean; do|
           for prover in rocq lean; do
             case "$prover" in
               rocq) checker="$(coqc --version | head -n 1)"; reported="$(grep '^PASS: Rocq leg ' "$RUNNER_TEMP/legs-proof.log")" ;;
