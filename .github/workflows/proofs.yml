@@ -31,7 +31,10 @@ jobs:
     name: Lattice laws, pinned sibling, controls and expected rejections
     runs-on: ubuntu-24.04
     timeout-minutes: 30
-    container: debian:13-slim@sha256:a29215f6a35e51e22adffa17f89e9d2ef06214e64a2bad10d765c46aea49f11f
+    strategy:
+      matrix:
+        image: [debian:13-slim@sha256:a29215f6a35e51e22adffa17f89e9d2ef06214e64a2bad10d765c46aea49f11f]
+    container: ${{ matrix.image }}
     steps:
       - name: Install the pinned prover
         run: |
@@ -56,13 +59,22 @@ jobs:
       - name: Fetch siblings at their pinned commits
         run: bash scripts/fetch-siblings.sh
       - name: Proof gate
-        run: bash scripts/check.sh
+        run: bash scripts/check.sh | tee "$RUNNER_TEMP/agda-proof.log"
       - name: Fetch the pinned tools of the standard
         run: bash scripts/grade-receipt.sh --fetch-standards
       # PROOF-POLICY §8.4 and §8.5.1: the receipt's trusted base and Agda input
       # set must be exactly what the pinned Agda reports for the graded root.
       - name: Receipt trusted base and Agda cone match the prover
         run: bash scripts/check-trusted-base.sh
+      - name: Record image-bound run rows in the job log
+        env:
+          CHECKER_IMAGE: ${{ matrix.image }}
+        run: |
+          bash scripts/grade-receipt.sh --run-row agda \
+            --run "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/attempts/$GITHUB_RUN_ATTEMPT" \
+            --commit "$(git rev-parse HEAD)" --checker "$(agda --version)" \
+            --reported "$(grep '^PASS: Lintel proofs,' "$RUNNER_TEMP/agda-proof.log")" \
+            --axioms none --image "$CHECKER_IMAGE"
   # The Rocq and Lean recheck legs (PROOF-POLICY §2), re-proved by hand on top
   # of secret-types' own legs at the sibling pin (verification/legs/README.adoc
   # gives the route and the statement correspondence). Both provers are pinned:
@@ -76,7 +88,10 @@ jobs:
     name: Rocq and Lean recheck legs (no axioms, no libraries)
     runs-on: ubuntu-24.04
     timeout-minutes: 30
-    container: ubuntu:24.04@sha256:73b999393d07f2bf65a40373778a44dc9a6d54ad7718d29247d8ff9413c4d6a8
+    strategy:
+      matrix:
+        image: [ubuntu:24.04@sha256:73b999393d07f2bf65a40373778a44dc9a6d54ad7718d29247d8ff9413c4d6a8]
+    container: ${{ matrix.image }}
     steps:
       - name: Install the pinned Coq
         run: |
@@ -104,7 +119,23 @@ jobs:
       - name: Fetch siblings at their pinned commits
         run: bash scripts/fetch-siblings.sh
       - name: Both legs check, with no axioms
-        run: bash scripts/check-legs.sh
+        run: bash scripts/check-legs.sh | tee "$RUNNER_TEMP/legs-proof.log"
+      - name: Fetch the pinned tools of the standard
+        run: bash scripts/grade-receipt.sh --fetch-standards
+      - name: Record image-bound run rows in the job log
+        env:
+          CHECKER_IMAGE: ${{ matrix.image }}
+        run: |
+          for prover in rocq lean; do
+            case "$prover" in
+              rocq) checker="$(coqc --version | head -n 1)"; reported="$(grep '^PASS: Rocq leg ' "$RUNNER_TEMP/legs-proof.log")" ;;
+              lean) checker="$(lean --version)"; reported="$(grep '^PASS: Lean leg ' "$RUNNER_TEMP/legs-proof.log")" ;;
+            esac
+            bash scripts/grade-receipt.sh --run-row "$prover" \
+              --run "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/attempts/$GITHUB_RUN_ATTEMPT" \
+              --commit "$(git rev-parse HEAD)" --checker "$checker" \
+              --reported "$reported" --axioms none --image "$CHECKER_IMAGE"
+          done
   # The proof receipt (PROOF-POLICY §8.5): the pinned reader of the standard
   # derives each grade, the shared git checker does the checks of §8.5.3, and
   # every current receipt must still describe this commit.  The git checks read

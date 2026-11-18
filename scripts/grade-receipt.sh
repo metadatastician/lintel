@@ -19,7 +19,9 @@
 #   --sibling-cone       the secret-types modules of the Agda cone, as paths in
 #                        that repository (scripts/check-trusted-base.sh reads it)
 #   --run-row PROVER --run URL --commit SHA --checker TEXT --reported TEXT
-#                        print the ledger row of a run that just passed
+#                        --axioms none --image NAME@sha256:<64 hex>
+#                        print the ledger row of a run that just passed,
+#                        recording the image the checker actually ran in
 #
 # Run scripts/fetch-siblings.sh first: the receipt imports secret-types at its
 # pin, and the hooks read that checkout.
@@ -30,10 +32,10 @@ export LC_ALL=C.UTF-8
 . scripts/proof-flags.sh
 
 # ── The pinned standard: four files at one commit, each with its sha256 ──────
-STANDARDS_COMMIT=58362c24cf225694b388fc660b3525d8207b7c61
+STANDARDS_COMMIT=4813fa1092a38a6782e722ede5b09ce79e92fba3
 declare -A STANDARDS_FILES=(
-  [scripts/proof-receipt.sh]=bfe35c08397ab85d7d33998ae126e189988994598320ffd2b139f2038e8eec4c
-  [1-formats/deed/tools/deed_lint.js]=8978546740ca2d6a1d90b769fe02159883cb18f1eb2c44b2eeb737bab341dcd2
+  [scripts/proof-receipt.sh]=47e9e5596e69574440260e4372c4b400f6c5f97192ff04292a59bffc4c215fe8
+  [1-formats/deed/tools/deed_lint.js]=29278b46654bdee70e8e1ff4a7ff8cb810e04b618c9ca1520a6979d6c4c91f18
   [scripts/proof-inputs-sha256.sh]=dfc6dde01a3a79df638eebe4cad0eae584d8f17280077e149174c0667e9508f4
   [scripts/check-proof-receipt.sh]=f2375747238464535d1b4a61f658f07cb2f8504c69bfb1812311c79429a4e23e
 )
@@ -91,7 +93,9 @@ ROWS
 
 # ── The run ledger ────────────────────────────────────────────────────────────
 # prover | run | commit | checker | invocation | inputs sha256 | reported |
-# state | reason | axioms [| imports [| trusted base]].  A current row is
+# state | reason | axioms [| imports [| trusted base [| image]]].
+# Image is field 13; empty imports/trusted-base fields are kept. PWG-1
+# requires a digest-pinned image on every counted current witness. A current row is
 # printed by --run-row from the log of the run that passed; no row is typed.
 # Run 42740256887 (on 89ceac3, main) checked the legs at the earlier
 # secret-types pin; the re-pin to 9fb8430 changed every leg's inputs, so the
