@@ -86,12 +86,12 @@ until the owner reviews it (estate doctrine 4).
 *The receipts.* A grade is derived from the receipt (§8.2, §8.4). `PWG-1` needs
 a current receipt, for every witness, of a pinned, headless and isolated checker
 run that describes the receipt's `:source-commit`; isolated means in an image
-pinned by its digest (owner ruling 2026-11-16). The last runs,
+pinned by its digest (owner ruling 2026-11-16). Under standards#1625 (owner ruling 2026-11-16), `PWG-1` additionally needs every counted witness's current receipt to carry a digest-pinned `:image "NAME@sha256:<64 hex>"`. Which grade the first run on `main` supports therefore depends on whether each leg's recorded row names such an image; this file does not predict it, and the reader derives it. The last runs,
 https://github.com/metadatastician/lintel/actions/runs/42740256887[42740256887]
 on `89ceac3`, checked the inputs at the earlier secret-types pin, and its legs ran
 on a bare runner, so they support `PWG-2ii` at most; the re-pin to `9fb8430`
 superseded them, and the receipt grades nothing until the first run on `main`
-after it is recorded. That run checks the Agda in
+after it is recorded. The reader at standards 940a27af derives `ungraded` for L-1, L-2, L-3, L-4, L-6 and L-7 from that receipt today. That run checks the Agda in
 `debian:13-slim@sha256:a29215f6…` and both legs in
 `ubuntu:24.04@sha256:73b99939…`. Each receipt lists the files of its graded
 invocation: for Agda, the import cone of `src/Lintel/All.agda` (the gate's
