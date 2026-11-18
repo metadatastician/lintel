@@ -31,10 +31,7 @@ jobs:
     name: Lattice laws, pinned sibling, controls and expected rejections
     runs-on: ubuntu-24.04
     timeout-minutes: 30
-    strategy:
-      matrix:
-        image: [debian:13-slim@sha256:a29215f6a35e51e22adffa17f89e9d2ef06214e64a2bad10d765c46aea49f11f]
-    container: ${{ matrix.image }}
+    container: debian:13-slim@sha256:a29215f6a35e51e22adffa17f89e9d2ef06214e64a2bad10d765c46aea49f11f
     steps:
       - name: Install the pinned prover
         run: |
@@ -66,10 +63,15 @@ jobs:
       # set must be exactly what the pinned Agda reports for the graded root.
       - name: Receipt trusted base and Agda cone match the prover
         run: bash scripts/check-trusted-base.sh
+      # The image is read from this job's own container line, so the row names
+      # the image the checker ran in (pattern: secret-types#57).  An empty read
+      # fails here: a row without an image would silently never count toward
+      # PWG-1.  A one-entry matrix would rename this job's check.
       - name: Record image-bound run rows in the job log
-        env:
-          CHECKER_IMAGE: ${{ matrix.image }}
         run: |
+          CHECKER_IMAGE="$(sed -n '/^  proofs:$/,/^  [a-z][a-z-]*:$/{s/^    container: *//p}' .github/workflows/proofs.yml)"
+          [[ "$CHECKER_IMAGE" == *@sha256:* ]] || { echo "no pinned container image for the proofs job" >&2; exit 1; }
+          bash scripts/grade-receipt.sh --run-row agda|
           bash scripts/grade-receipt.sh --run-row agda \
             --run "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/attempts/$GITHUB_RUN_ATTEMPT" \
             --commit "$(git rev-parse HEAD)" --checker "$(agda --version)" \
@@ -88,10 +90,7 @@ jobs:
     name: Rocq and Lean recheck legs (no axioms, no libraries)
     runs-on: ubuntu-24.04
     timeout-minutes: 30
-    strategy:
-      matrix:
-        image: [ubuntu:24.04@sha256:73b999393d07f2bf65a40373778a44dc9a6d54ad7718d29247d8ff9413c4d6a8]
-    container: ${{ matrix.image }}
+    container: ubuntu:24.04@sha256:73b999393d07f2bf65a40373778a44dc9a6d54ad7718d29247d8ff9413c4d6a8
     steps:
       - name: Install the pinned Coq
         run: |
@@ -122,10 +121,12 @@ jobs:
         run: bash scripts/check-legs.sh | tee "$RUNNER_TEMP/legs-proof.log"
       - name: Fetch the pinned tools of the standard
         run: bash scripts/grade-receipt.sh --fetch-standards
+      # As in the proofs job: the image is read from this job's container line.
       - name: Record image-bound run rows in the job log
-        env:
-          CHECKER_IMAGE: ${{ matrix.image }}
         run: |
+          CHECKER_IMAGE="$(sed -n '/^  legs:$/,/^  [a-z][a-z-]*:$/{s/^    container: *//p}' .github/workflows/proofs.yml)"
+          [[ "$CHECKER_IMAGE" == *@sha256:* ]] || { echo "no pinned container image for the legs job" >&2; exit 1; }
+          for prover in rocq lean; do|
           for prover in rocq lean; do
             case "$prover" in
               rocq) checker="$(coqc --version | head -n 1)"; reported="$(grep '^PASS: Rocq leg ' "$RUNNER_TEMP/legs-proof.log")" ;;

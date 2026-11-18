@@ -88,8 +88,8 @@ a current receipt, for every witness, of a pinned, headless and isolated checker
 run that describes the receipt's `:source-commit`; isolated means in an image
 pinned by its digest (owner ruling 2026-11-16). Under standards#1625 (owner ruling 2026-11-16), `PWG-1` additionally needs every counted witness's current receipt to carry a digest-pinned `:image "NAME@sha256:<64 hex>"`. The pinned image-aware generator and reader enforce this for all three legs;
 a missing image limits an otherwise eligible claim to `PWG-2ii`. After each
-successful gate, CI prints `--run-row --image` rows using the job's actual
-`matrix.image` (also used by `container`): Debian for Agda and Ubuntu for Rocq and Lean. Record
+successful gate, CI prints `--run-row --image` rows using the image read
+from the job's own `container:` line: Debian for Agda and Ubuntu for Rocq and Lean. Record
 those rows in `receipt_runs` and regenerate with `--write`; field 13 carries
 the image, retaining empty import or trusted-base fields as needed. Images
 are never inferred from checker version text or added to historical runs. The last runs,
