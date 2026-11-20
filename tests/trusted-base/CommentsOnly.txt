@@ -1,0 +1,8 @@
+-- SPDX-License-Identifier: MPL-2.0
+-- Negative control: postulate appears only in comments and a pragma body,
+-- so a scan finds no postulate.  Not an Agda module of the development.
+module Fixture.CommentsOnly where
+-- postulate X : Set
+{- postulate Y : Set {- postulate Z : Set -} -}
+{-# BUILTIN NOTHING postulate #-}
+data T : Set where t : T

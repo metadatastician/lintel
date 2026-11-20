@@ -1,0 +1,28 @@
+-- SPDX-License-Identifier: MPL-2.0
+-- Positive control for scripts/scan-agda-postulates.awk: a scan must find
+-- every postulate below, in every layout, and nothing in the comments.
+-- Not an Agda module of the development (.txt, so no gate checks it).
+{-# OPTIONS --without-K #-}
+module Fixture.Positive where
+
+{- A block comment that names a postulate:
+   postulate Hidden : Set
+   {- nested: postulate Deeper : Set -}
+-}
+
+postulate
+  A : Set
+  b c : A
+
+{-# BUILTIN ONE A #-}
+{-# BUILTIN TWO b #-}
+{-# BUILTIN THREE c #-}
+
+private postulate d : A
+{-# BUILTIN FOUR d #-}
+
+postulate
+  e : A →
+      A
+-- postulate NotThis : Set
+{-# BUILTIN FIVE e #-}

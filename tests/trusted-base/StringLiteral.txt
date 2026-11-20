@@ -1,0 +1,7 @@
+-- SPDX-License-Identifier: MPL-2.0
+-- Refusal control: the scan does not lex string literals, so it refuses a
+-- file that has one (a "{-" inside a string could hide a postulate).
+module Fixture.StringLiteral where
+s = "{-"
+postulate
+  Hidden : Set
