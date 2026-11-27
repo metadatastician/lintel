@@ -35,12 +35,14 @@ done
 # shellcheck disable=SC2016
 check "$audit" '
     ((.on | length) == 3) and (.on | has("workflow_call"))
+    and ((.on.push | length) == 1)
     and ((.on.push.branches | length) == 1) and (.on.push.branches[0] == "main")
+    and ((.on.pull_request | length) == 1)
     and ((.on.pull_request.branches | length) == 1) and (.on.pull_request.branches[0] == "main")
     and ((.permissions | length) == 1) and (.permissions.contents == "read")
     and (.concurrency.group == "${{ github.workflow }}-${{ github.ref }}")
     and (.concurrency.cancel-in-progress == true)
-' 'expected main push/PR triggers, reusable entry point, read-only contents, and per-ref cancellation'
+' 'expected unfiltered main pushes/PRs, reusable entry point, read-only contents, and per-ref cancellation'
 check "$audit" '
     .jobs | ((length == 1) and
         (.estate-audit | (has("runs-on") and ((has("uses") or has("if") or has("continue-on-error") or has("permissions")) | not))))
@@ -139,5 +141,41 @@ done
 for child in hyperpolymath/deed-ecosystem hyperpolymath/k9-ecosystem; do
     check_nested "$audit_key" "$child"
 done
+
+check "$workflows/estate-rules.yml" '
+    .jobs."estate-rules" |
+    (((has("if") or has("continue-on-error")) | not)
+    and ([.steps[] | select(.run == "bash tests/workflows/reusable_callers_startup_test.sh")
+        | select((has("if") or has("continue-on-error")) | not)] | length == 1))
+' 'Estate Rules must run the caller regression and propagate its failures'
+
+# Exercise the guard itself with one change at a time. A fixture invocation
+# runs only the assertions above so it cannot recursively run these controls.
+if [[ $# -eq 0 ]]; then
+    fixture=$(mktemp -d)
+    trap 'rm -rf -- "$fixture"' EXIT
+    cp -- "$lock" "$audit" "$workflows/"{governance,rust-ci,estate-rules}.yml "$fixture/"
+
+    expect_rejection() {
+        local file="$1" edit="$2" diagnostic="$3" output status=0
+        yq -i "$edit" "$fixture/$file"
+        output=$(bash "${BASH_SOURCE[0]}" "$fixture" 2>&1) || status=$?
+        [[ $status == 1 && $output == *"FAIL: "*"$diagnostic"* ]] ||
+            fail "expected $file fixture to fail with '$diagnostic' (exit $status): $output"
+        cp -- "$workflows/$file" "$fixture/$file"
+    }
+
+    expect_rejection governance.yml '.jobs.governance.uses |= sub("@.*$", "@main")' \
+        'governance must call its reusable workflow at a full SHA'
+    expect_rejection main-estate-audit.yml '.on.pull_request.paths = ["docs/**"]' \
+        'expected unfiltered main pushes/PRs'
+    expect_rejection main-estate-audit.yml '.jobs.estate-audit.steps[1].continue-on-error = true' \
+        'all audit gates must run by default and retain normal failure behavior'
+    expect_rejection actions.lock 'del(.dependencies[] | select(.repo_id == 1326697643).uses[])' \
+        'must lock a pinned nested dependency on hyperpolymath/deed-ecosystem'
+    expect_rejection estate-rules.yml '
+        (.jobs."estate-rules".steps[] | select(.run == "bash tests/workflows/reusable_callers_startup_test.sh")).if = false
+    ' 'Estate Rules must run the caller regression and propagate its failures'
+fi
 
 echo 'PASS: migrated reusable callers, inline estate audit, and startup lock records'
