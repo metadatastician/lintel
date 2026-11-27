@@ -19,7 +19,7 @@
 #   * every `#print axioms` line must read "does not depend on any axioms".
 #
 # Pins: COQ_VERSION and LEAN_VERSION below, fixed (no environment override);
-# scripts/grade-receipt.sh reads them from here into the receipt.
+# the receipt's [[run]] rows (verification/receipts/proof-receipt.toml) name them.
 set -euo pipefail
 cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.."
 export LC_ALL="${LC_ALL:-C.UTF-8}"

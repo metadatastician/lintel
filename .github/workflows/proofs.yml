@@ -20,6 +20,12 @@ concurrency:
 env:
   LANG: C.UTF-8
   LC_ALL: C.UTF-8
+# A job with a container: runs its steps with sh, not bash, unless told; the
+# images here (Debian 13, Ubuntu 24.04) both ship bash, and steps use set -o
+# pipefail.  GitHub runs bash as `bash --noprofile --norc -eo pipefail {0}`.
+defaults:
+  run:
+    shell: bash
 jobs:
   proofs:
     name: Lattice laws, pinned sibling, controls and expected rejections
@@ -30,7 +36,7 @@ jobs:
       - name: Install the pinned prover
         run: |
           apt-get update
-          apt-get install --no-install-recommends -y ca-certificates git agda-bin=2.6.4.3-1+b2
+          apt-get install --no-install-recommends -y ca-certificates curl git agda-bin=2.6.4.3-1+b2
       - name: Checkout
         uses: actions/checkout@v7.0.1
         with:
@@ -50,31 +56,46 @@ jobs:
       - name: Fetch siblings at their pinned commits
         run: bash scripts/fetch-siblings.sh
       - name: Proof gate
-        run: bash scripts/check.sh
-      # The receipt names the gate, its flags, the claim PWGs and the hashed
-      # import cone (PROOF-POLICY §8). A committed receipt that no longer
-      # matches the tree fails here.
-      - name: Verification receipt matches the tree and the claim list
-        run: bash scripts/grade-receipt.sh --check
-      - name: Emit the receipt for this commit
+        run: bash scripts/check.sh | tee "$RUNNER_TEMP/agda-proof.log"
+      - name: Fetch the pinned tools of the standard
+        run: bash scripts/grade-receipt.sh --fetch-standards
+      # PROOF-POLICY §8.4 and §8.5.1: the receipt's trusted base and Agda input
+      # set must be exactly what the pinned Agda reports for the graded root.
+      - name: Receipt trusted base and Agda cone match the prover
+        run: bash scripts/check-trusted-base.sh
+      # The image is read from this job's own container line, so the row names
+      # the image the checker ran in (pattern: secret-types#57).  An empty read
+      # fails here: a row without an image would silently never count toward
+      # PWG-1.  A one-entry matrix would rename this job's check.
+      - name: Record image-bound run rows in the job log
         run: |
-          bash scripts/grade-receipt.sh --write --commit "$(git rev-parse --short=12 HEAD)"
-          sed -n '1,40p' verification/receipts/agda-pwg_praxis.deed
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          CHECKER_IMAGE="$(sed -n '/^  proofs:$/,/^  [a-z][a-z-]*:$/{s/^    container: *//p}' .github/workflows/proofs.yml)"
+          [[ "$CHECKER_IMAGE" == *@sha256:* ]] || { echo "no pinned container image for the proofs job" >&2; exit 1; }
+          bash scripts/grade-receipt.sh --run-row agda \
+            --run "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/attempts/$GITHUB_RUN_ATTEMPT" \
+            --commit "$(git rev-parse HEAD)" --checker "$(agda --version)" \
+            --reported "$(grep '^PASS: Lintel proofs,' "$RUNNER_TEMP/agda-proof.log")" \
+            --axioms none --image "$CHECKER_IMAGE"
   # The Rocq and Lean recheck legs (PROOF-POLICY §2), re-proved by hand on top
   # of secret-types' own legs at the sibling pin (verification/legs/README.adoc
   # gives the route and the statement correspondence). Both provers are pinned:
   # Coq by its Ubuntu package version, Lean by its release tarball's sha256.
   # Neither leg may depend on anything but secret-types' leg, nor rest on an
-  # axiom; scripts/check-legs.sh refuses either.
+  # axiom; scripts/check-legs.sh refuses either.  The job runs in an image
+  # pinned by its digest, so the checker is isolated in the sense of
+  # PROOF-POLICY §8.2 (owner ruling 2026-11-16): a bare runner's image can
+  # change underneath a version-pinned prover.
   legs:
     name: Rocq and Lean recheck legs (no axioms, no libraries)
     runs-on: ubuntu-24.04
     timeout-minutes: 30
+    container: ubuntu:24.04@sha256:73b999393d07f2bf65a40373778a44dc9a6d54ad7718d29247d8ff9413c4d6a8
     steps:
       - name: Install the pinned Coq
         run: |
-          sudo apt-get update
-          sudo apt-get install --no-install-recommends -y coq=8.18.0+dfsg-1build2 zstd
+          apt-get update
+          apt-get install --no-install-recommends -y ca-certificates curl git zstd coq=8.18.0+dfsg-1build2
       - name: Install the pinned Lean (release tarball, sha256-checked)
         env:
           LEAN_URL: https://github.com/leanprover/lean4/releases/download/v4.24.0/lean-4.24.0-linux.tar.zst
@@ -92,7 +113,58 @@ jobs:
           persist-credentials: false
       - name: Leg diagnostics and correspondence self-test
         run: bash tests/legs-receipt-test.sh
+      - name: Recheck gate self-test (escape hatches, pins, axiom lines)
+        run: bash tests/check-legs-test.sh
       - name: Fetch siblings at their pinned commits
         run: bash scripts/fetch-siblings.sh
       - name: Both legs check, with no axioms
-        run: bash scripts/check-legs.sh
+        run: bash scripts/check-legs.sh | tee "$RUNNER_TEMP/legs-proof.log"
+      - name: Fetch the pinned tools of the standard
+        run: bash scripts/grade-receipt.sh --fetch-standards
+      # As in the proofs job: the image is read from this job's container line.
+      - name: Record image-bound run rows in the job log
+        run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          CHECKER_IMAGE="$(sed -n '/^  legs:$/,/^  [a-z][a-z-]*:$/{s/^    container: *//p}' .github/workflows/proofs.yml)"
+          [[ "$CHECKER_IMAGE" == *@sha256:* ]] || { echo "no pinned container image for the legs job" >&2; exit 1; }
+          for prover in rocq lean; do
+            case "$prover" in
+              rocq) checker="$(coqc --version | head -n 1)"; reported="$(grep '^PASS: Rocq leg ' "$RUNNER_TEMP/legs-proof.log")" ;;
+              lean) checker="$(lean --version)"; reported="$(grep '^PASS: Lean leg ' "$RUNNER_TEMP/legs-proof.log")" ;;
+            esac
+            bash scripts/grade-receipt.sh --run-row "$prover" \
+              --run "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/attempts/$GITHUB_RUN_ATTEMPT" \
+              --commit "$(git rev-parse HEAD)" --checker "$checker" \
+              --reported "$reported" --axioms none --image "$CHECKER_IMAGE"
+          done
+  # The proof receipt (PROOF-POLICY §8.5): the pinned reader of the standard
+  # derives each grade, the shared git checker does the checks of §8.5.3, and
+  # every current receipt must still describe this commit.  The git checks read
+  # the history, so the checkout is full.  Bun is the release zip, pinned by
+  # sha256 (the digest oven-sh publishes in SHASUMS256.txt for v1.4.2).
+  receipt:
+    name: Proof receipt (reader, git checks, currency)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Install the pinned Bun (release zip, sha256-checked)
+        env:
+          BUN_URL: https://github.com/oven-sh/bun/releases/download/bun-v1.4.2/bun-linux-x64.zip
+          BUN_SHA256: 36368faef7527875d5ffa52e53cd48021741f2a83eb6208a8dd64068d422a913
+        run: |
+          set -euo pipefail
+          curl --proto '=https' --proto-redir '=https' --tlsv1.2 -fsSL "$BUN_URL" -o "$RUNNER_TEMP/bun.zip"
+          echo "$BUN_SHA256  $RUNNER_TEMP/bun.zip" | sha256sum --check --strict
+          unzip -q "$RUNNER_TEMP/bun.zip" -d "$RUNNER_TEMP/bun"
+          echo "$RUNNER_TEMP/bun/bun-linux-x64" >> "$GITHUB_PATH"
+      - name: Checkout (full history)
+        uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Fetch siblings at their pinned commits
+        run: bash scripts/fetch-siblings.sh
+      - name: Fetch the pinned tools of the standard
+        run: bash scripts/grade-receipt.sh --fetch-standards
+      - name: The receipt holds
+        run: bash scripts/grade-receipt.sh --check

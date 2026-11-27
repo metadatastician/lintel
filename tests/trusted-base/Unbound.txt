@@ -1,0 +1,6 @@
+-- SPDX-License-Identifier: MPL-2.0
+-- Refusal control: a postulate with no BUILTIN binding is an axiom of the
+-- development, not part of the prover's trusted base.  The scan refuses it.
+module Fixture.Unbound where
+postulate
+  Bad : Set

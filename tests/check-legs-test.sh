@@ -127,7 +127,8 @@ done
 for stage in SIBLING ROCQ BUILD LEAN; do
   reset_case
   export "TEST_${stage}_STATUS=17"
-  check 1 'does not check'
+  if [[ "$stage" == BUILD ]]; then check 1 'FAIL: the Lean leg does not build'
+  else check 1 'does not check'; fi
   if [[ "$stage" == SIBLING || "$stage" == ROCQ ]]; then
     if grep -q '^lake ' "$TEST_CALLS"; then exit 1; fi
   elif [[ "$stage" == BUILD ]]; then
