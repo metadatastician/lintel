@@ -1,23 +1,93 @@
 // SPDX-License-Identifier: CC-BY-SA-4.0
 // Copyright (c) Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
 = Lintel Roadmap
+:revdate: 2026-11-16
+
+STATE's journal (see `lintel_chora.deed`, `(status)` and `(maturity)`). What is
+next lives here. Claim-by-claim proof status lives in
+link:PROOF-STATUS.adoc[`PROOF-STATUS.adoc`] and the README claim table.
 
 == Current Status
 
-Initial development phase.
+Phase `incubating`, maturity `experimental` (the deed's values; this file does
+not change them).
+
+Lintel is a privacy lattice for oblivious DNS, proved in Agda over
+`hyperpolymath/secret-types`. As of 2026-11-16:
+
+* The PROVEN claims L-1 to L-4, L-6 and L-7 are Agda-proved under the canonical
+  `--safe --without-K --cubical-compatible` invocation (PR #22), and
+  re-proved by hand in Rocq and in Lean (PR #23). L-5 is a set of checked
+  refusals (`tested-only`); A-1 is an argued assumption. Neither is graded.
+* *Grade.* The claims are at `PWG-2ii` as derived by Lintel's own
+  `scripts/grade-receipt.sh`, and no higher. That derivation is local to this
+  repository.
+* *The canon reader refuses the receipt.* The canon reader in
+  `metadatastician/standards`
+  (`1-formats/deed/tools/deed_lint.js --proof-receipt-json`) currently rejects
+  `verification/receipts/agda-pwg_praxis.deed`: it is not in the PROOF-POLICY
+  §8.5.1 shape. So the `PWG-2ii` grade has not been confirmed by the canon
+  tooling, and the §8.5.1 receipt is an open item (below).
+* *`Agda proofs` on `main`.* It has been red since #23 merged (run 42740256887;
+  `grade-receipt.sh --check` fails on a stale receipt). Draft PR #27 addresses
+  this.
+
+=== Merged
+
+[cols="1,4",options="header"]
+|===
+| PR | What
+
+| #22 | Proofs meet the canonical Agda invocation (`--cubical-compatible`); PWG-3 receipt and proof-status file
+| #23 | Rocq and Lean recheck legs for L-1..L-4, L-6, L-7 (PWG-2ii), reconciled in `verification/legs/README.adoc`
+| #26 | Dependabot: actions group bump (`softprops/action-gh-release` 3.0.4, `SonarSource/sonarqube-scan-action` 8.4.1)
+|===
+
+=== Open
+
+* Draft PR #27 (not merged): re-pins `secret-types` from `45046c2` (a commit on
+  the closed, unmerged secret-types#29) to `9fb8430`, its `main`; refreshes the
+  receipt; wires the two leg self-tests into the `legs` job. Until it merges,
+  `main` still pins `45046c2`.
 
 == Milestones
 
-=== v0.1.0 - Foundation
-* [ ] Core functionality
-* [ ] Basic documentation
-* [ ] CI/CD pipeline
+=== M1 — Proofs held on `main` and canon-readable
 
-=== v1.0.0 - Stable Release
-* [ ] Full feature set
-* [ ] Comprehensive tests
-* [ ] Production ready
+* [x] L-1..L-4, L-6, L-7 proved in Agda, canonical invocation (#22)
+* [x] Rocq and Lean legs for the same claims (#23)
+* [ ] `Agda proofs` green on `main` (draft PR #27)
+* [ ] secret-types pin on its `main` (draft PR #27)
+* [ ] Receipt in the PROOF-POLICY §8.5.1 shape, accepted by
+  `deed_lint.js --proof-receipt-json`. Until then the grade is derived only by
+  `scripts/grade-receipt.sh`.
+* [ ] Owner review of the legs' statement comparison
+  (`verification/legs/README.adoc`), which Claude Code wrote and which is
+  provisional (estate doctrine 4).
+
+=== M2 — Above `PWG-2ii`
+
+* [ ] Per-leg, per-commit receipts recording each checker's observed result,
+  the precondition for `PWG-1` (PROOF-POLICY §8.2). The `legs` job log is
+  execution evidence, not a substitute.
+
+=== M3 — Repository identity completed (owner decisions)
+
+The deed still carries `UNASSIGNED` for fields only the owner can set:
+`(ecosystem)` `:position-type`, `:pipeline-position`, `:chain`, and an empty
+`:not` (the IS-NOT); the `(anchor)` identity `:kind` and `:domain`; and the
+`unique-strength` `:description`. Registration in `gv-clade-index` is the
+owner's act. None is filled in here, since none can be proved from the
+repository.
+
+=== Not planned / by design
+
+* A-1 (non-collusion) stays an assumption. Confinement of the link is per
+  role, and a proxy–target coalition can join the two fields outside any
+  program. `Lintel.Instance.collusion-gap` proves the gap.
+* The template skeletons under `verification/proofs/{agda,coq,lean4,idris2,tlaplus}`
+  prove nothing about Lintel.
 
 == Future Directions
 
-_To be determined based on community feedback._
+To be set by the owner once M1 and M3 close.
