@@ -73,6 +73,12 @@ jobs:
         run: bash tests/workflows/check_no_a2ml_test.sh
       - name: Deed clause writer controls
         run: bash tests/workflows/deed_clause_test.sh
+      # Offline guard for the caller migration (#28): the reusable callers sit at
+      # a full-SHA pin under metadatastician/standards, the inline estate audit
+      # keeps all 26 original gates with no bypass, and actions.lock records
+      # match. Needs Mike Farah's yq v4, which the ubuntu runner image ships.
+      - name: Reusable callers and estate-audit gate roster regression
+        run: bash tests/workflows/reusable_callers_startup_test.sh
       - name: Install verified Nickel 1.17.0
         run: |
           mkdir -p "$RUNNER_TEMP/nickel-bin"
